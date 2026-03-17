@@ -1,4 +1,4 @@
-spank
-dist/
-.cache/
+/spank
+/dist/
+/.cache/
 *.log

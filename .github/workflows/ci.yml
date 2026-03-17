@@ -1,0 +1,18 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  go:
+    uses: nikolareljin/ci-helpers/.github/workflows/go.yml@production
+    with:
+      working_directory: "."
+      go_version: "1.22.2"
+      lint_command: "./scripts/update_submodules.sh && ./scripts/lint.sh"
+      test_command: "./scripts/update_submodules.sh && ./scripts/test.sh"
+      build_command: "./scripts/update_submodules.sh && ./scripts/build.sh"
