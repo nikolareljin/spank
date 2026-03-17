@@ -1,0 +1,12 @@
+[Unit]
+Description=spank accelerometer monitor
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/bin/spank run
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
