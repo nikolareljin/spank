@@ -4,6 +4,12 @@
 
 The core behavior is simple: monitor a laptop accelerometer, detect sudden motion, and play a sound.
 
+One-line install/build/run:
+
+```bash
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/nikolareljin/spank/main/setup.sh)"
+```
+
 ## Current support
 
 - Linux only
