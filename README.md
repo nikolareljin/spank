@@ -67,6 +67,12 @@ Supported settings:
 - `log_level`
 - `dry_run`
 
+Available `sound` values:
+
+- `default` or `pain`
+- `halo`
+- `sexy`
+
 Environment variable forms:
 
 ```bash
@@ -76,10 +82,12 @@ SPANK_SAMPLE_INTERVAL=40ms
 SPANK_COOLDOWN=1200ms
 SPANK_SOUND=default
 SPANK_VOLUME=1.0
-SPANK_PLAYER_CMD="paplay %s"
+SPANK_PLAYER_CMD="ffplay -nodisp -autoexit -loglevel quiet %s"
 SPANK_LOG_LEVEL=debug
 SPANK_DRY_RUN=true
 ```
+
+Because the bundled packs are MP3 files, `spank` expects an MP3-capable player such as `ffplay`, `mpv`, `mpg123`, `mpg321`, `play`, or `vlc`.
 
 ## systemd user service
 

@@ -4,6 +4,7 @@
 
 - Added `setup.sh` for one-step clone, build, install, and immediate run on the local machine.
 - Added a one-line install command near the top of `README.md`.
+- Imported the upstream MIT-licensed `pain`, `halo`, and `sexy` MP3 sound packs from `taigrr/spank`.
 
 ## [0.1.0] - 2026-03-17
 
