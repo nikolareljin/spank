@@ -33,7 +33,7 @@ spank doctor
 ## Quick start
 
 ```bash
-cd /projects/Projects/_NIK_PROGRAMS/spank
+cd /path/to/spank
 go build ./cmd/spank
 ./spank doctor
 ./spank list-sensors
