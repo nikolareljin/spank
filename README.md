@@ -1,28 +1,38 @@
 # spank
 
-`spank` is a Linux-first port of [`taigrr/spank`](https://github.com/taigrr/spank) for laptop accelerometers on Ubuntu/Linux, validated around Lenovo-style hardware but designed to stay portable across other brands that expose sensors through the Linux IIO stack.
+`spank` is now a motion-triggered sound app with two delivery targets:
 
-The core behavior is simple: monitor a laptop accelerometer, detect sudden motion, and play a sound.
+- a Flutter mobile app for Android phones and supported iPhones
+- the original Go/Linux CLI for laptops that expose accelerometers through Linux IIO
 
-One-line install/build/run:
+The core behavior stays the same across both: read accelerometer motion, detect a sharp impact with a rolling baseline and cooldown, and play a random sound from the selected pack.
 
-```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/nikolareljin/spank/main/setup.sh)"
-```
+## Platform support
 
-## Current support
+- Mobile app in [`mobile/`](mobile/):
+  - Android-first Flutter app
+  - Supported iPhone build target: iOS 12+
+  - Native accelerometer and audio bridges on both platforms
+  - Bundled `pain`, `halo`, and `sexy` sound packs
+  - Foreground monitoring while the app is open
+- Linux CLI:
+  - Raw accelerometers exposed through `/sys/bus/iio/devices/iio:device*`
+  - CLI commands for monitoring, diagnostics, and sensor listing
+  - Sample `systemd --user` unit for login-time autostart
 
-- Linux only
-- Raw accelerometers exposed through `/sys/bus/iio/devices/iio:device*`
-- Lenovo-friendly discovery heuristics with manual sensor override for other brands
-- CLI commands for monitoring, diagnostics, and sensor listing
-- Sample `systemd --user` unit for login-time autostart
+This repository is no longer just a Lenovo/Linux experiment. The mobile app is now the main path for turning older phones into slap or tap triggered sound devices, while the Linux CLI remains available for laptop hardware that exposes compatible sensors.
+
+## Quick links
+
+- Mobile build and run guide: [`docs/mobile-build-run.md`](docs/mobile-build-run.md)
+- Mobile app notes: [`mobile/README.md`](mobile/README.md)
+- Linux CLI entrypoint: [`cmd/spank/main.go`](cmd/spank/main.go)
 
 ## Why IIO instead of orientation services
 
 Linux desktop orientation helpers such as `iio-sensor-proxy` are useful for screen rotation, but they do not provide the continuous raw XYZ acceleration stream needed for impact detection. `spank` reads the kernel IIO/sysfs interface directly.
 
-## Commands
+## Linux CLI commands
 
 ```bash
 spank run
@@ -30,7 +40,7 @@ spank list-sensors
 spank doctor
 ```
 
-## Quick start
+## Linux quick start
 
 ```bash
 cd /path/to/spank
@@ -45,6 +55,29 @@ If auto-detection picks the wrong device:
 ```bash
 ./spank run --sensor /sys/bus/iio/devices/iio:device0
 ```
+
+## Mobile quick start
+
+```bash
+cd /path/to/spank/mobile
+flutter test
+flutter run -d android
+```
+
+The mobile app keeps the detector logic in Dart and uses platform-native code only for:
+
+- accelerometer sampling
+- local settings persistence
+- low-latency playback of bundled MP3 assets
+
+Current mobile assumptions:
+
+- Android is the primary target
+- iPhone support is configured for iOS 12+
+- Monitoring is foreground-only in v1
+- Older devices may need threshold tuning in the in-app Tap Test screen
+
+For full Android and iPhone setup, build, install, and run instructions, see [`docs/mobile-build-run.md`](docs/mobile-build-run.md).
 
 ## Configuration
 
@@ -126,4 +159,5 @@ If those commands still do not produce any `iio:device*` entries, your laptop pr
 ```bash
 go test ./...
 go build ./cmd/spank
+cd mobile && flutter test
 ```
