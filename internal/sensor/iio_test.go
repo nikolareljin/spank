@@ -8,6 +8,21 @@ import (
 	"testing"
 )
 
+func TestDiscoverReportsMissingSysfsRootClearly(t *testing.T) {
+	root := t.TempDir()
+	sysfs := filepath.Join(root, "missing")
+	dmi := filepath.Join(root, "dmi")
+
+	provider := NewIIOProvider(sysfs, dmi)
+	_, err := provider.Discover(context.Background())
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "does not expose accelerometers") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestDiscoverRanksLenovoCandidateFirst(t *testing.T) {
 	root := t.TempDir()
 	sysfs := filepath.Join(root, "sys", "bus", "iio", "devices")

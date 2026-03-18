@@ -27,6 +27,9 @@ func NewIIOProvider(sysfsRoot, dmiRoot string) *IIOProvider {
 func (p *IIOProvider) Discover(_ context.Context) ([]SensorInfo, error) {
 	entries, err := os.ReadDir(p.SysfsRoot)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("Linux IIO sysfs root %s not found; this machine does not expose accelerometers through /sys/bus/iio/devices", p.SysfsRoot)
+		}
 		return nil, fmt.Errorf("read sysfs root %s: %w", p.SysfsRoot, err)
 	}
 

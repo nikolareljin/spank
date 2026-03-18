@@ -18,7 +18,7 @@ func Run(ctx context.Context, cfg config.Config) error {
 	provider := sensor.NewIIOProvider(cfg.SysfsRoot, cfg.DmiRoot)
 	info, err := sensor.FindSensor(ctx, provider, cfg.Sensor)
 	if err != nil {
-		return err
+		return sensor.ExplainDiscoveryFailure(err)
 	}
 	stream, err := provider.Open(ctx, info, cfg.SampleInterval)
 	if err != nil {
@@ -65,10 +65,10 @@ func ListSensors(ctx context.Context, cfg config.Config) error {
 	provider := sensor.NewIIOProvider(cfg.SysfsRoot, cfg.DmiRoot)
 	sensors, err := provider.Discover(ctx)
 	if err != nil {
-		return err
+		return sensor.ExplainDiscoveryFailure(err)
 	}
 	if len(sensors) == 0 {
-		return errors.New("no compatible Linux IIO accelerometers found")
+		return sensor.ExplainDiscoveryFailure(errors.New("no compatible Linux IIO accelerometers found"))
 	}
 
 	for _, info := range sensors {
@@ -88,14 +88,18 @@ func Doctor(ctx context.Context, cfg config.Config) error {
 	provider := sensor.NewIIOProvider(cfg.SysfsRoot, cfg.DmiRoot)
 	sensors, err := provider.Discover(ctx)
 	if err != nil {
-		fmt.Printf("sensor discovery: fail (%v)\n", err)
+		fmt.Printf("sensor discovery: fail (%v)\n", sensor.ExplainDiscoveryFailure(err))
+		printAdvice(cfg)
 	} else {
 		fmt.Printf("sensor discovery: ok (%d candidate(s))\n", len(sensors))
 	}
 
 	info, selectErr := sensor.FindSensor(ctx, provider, cfg.Sensor)
 	if selectErr != nil {
-		fmt.Printf("sensor selection: fail (%v)\n", selectErr)
+		fmt.Printf("sensor selection: fail (%v)\n", sensor.ExplainDiscoveryFailure(selectErr))
+		if err == nil {
+			printAdvice(cfg)
+		}
 	} else {
 		fmt.Printf("sensor selection: ok (%s at %s)\n", info.ID, info.Path)
 	}
@@ -136,4 +140,10 @@ func emptyFallback(value string) string {
 		return "(none)"
 	}
 	return value
+}
+
+func printAdvice(cfg config.Config) {
+	for _, line := range sensor.DiscoveryAdvice(cfg.DmiRoot) {
+		fmt.Printf("hint: %s\n", line)
+	}
 }
