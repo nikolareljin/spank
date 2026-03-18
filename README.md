@@ -1,11 +1,8 @@
 # spank
 
-`spank` is now a motion-triggered sound app with two delivery targets:
+`spank` is a motion-triggered sound app. Tap, slap, or jolt a device, and it detects the impact from accelerometer data and plays a random sound from the selected pack.
 
-- a Flutter mobile app for Android phones and supported iPhones
-- the original Go/Linux CLI for laptops that expose accelerometers through Linux IIO
-
-The core behavior stays the same across both: read accelerometer motion, detect a sharp impact with a rolling baseline and cooldown, and play a random sound from the selected pack.
+The primary experience is the mobile app for Android phones and supported iPhones. The repository also includes the original Linux CLI for laptops that expose accelerometers through Linux IIO.
 
 ## Platform support
 
