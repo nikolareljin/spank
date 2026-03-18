@@ -109,6 +109,18 @@ Adjust the `ExecStart` path and flags in the unit file as needed.
 - Some laptops expose multiple motion sensors. `spank list-sensors` shows ranking reasons and helps choose the correct one.
 - If no suitable accelerometer exists, `spank` exits cleanly with a diagnostic instead of pretending support.
 
+## Troubleshooting missing sensors
+
+If `spank doctor` reports that `/sys/bus/iio/devices` does not exist, the issue is usually below the application layer:
+
+```bash
+journalctl -k -b | rg 'iio|sensor|accel|gyro|hid'
+sudo modprobe industrialio hid_sensor_hub hid_sensor_accel_3d hid_sensor_gyro_3d
+find /sys/bus/iio/devices -maxdepth 1 -type d
+```
+
+If those commands still do not produce any `iio:device*` entries, your laptop probably does not expose a Linux-readable accelerometer. Repository investigation on a ThinkPad T14 Gen 1 AMD (`20UD`) running Ubuntu 24.04 and kernel `6.17.0` found no usable accelerometer on IIO, HID sensor, I2C, or SPI buses. Lenovo's T14 Gen 1 AMD spec sheet also does not advertise an accelerometer, so that platform should currently be treated as unsupported unless a future BIOS or kernel path surfaces one.
+
 ## Development
 
 ```bash
