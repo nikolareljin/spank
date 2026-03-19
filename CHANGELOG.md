@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+- Added Flutter mobile CI checks to run formatting, analysis, widget tests, and a debug APK build on pushes and pull requests.
+- Added a release APK GitHub Actions workflow that runs mobile lint and tests before building and attaching the Android release APK for auto-tagged `release/X.Y.Z -> main` merges.
+- Switched the release tag gate workflow to the reusable `ci-helpers` release-tag check.
+
 ## [0.2.0] - 2026-03-17
 
 - Added `setup.sh` for one-step clone, build, install, and immediate run on the local machine.

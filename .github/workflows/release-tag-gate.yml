@@ -8,18 +8,4 @@ on:
 
 jobs:
   gate:
-    if: ${{ startsWith(github.head_ref, 'release/') }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-          submodules: recursive
-
-      - name: Check release tag availability
-        uses: nikolareljin/ci-helpers/.github/actions/check-release-tag@production
-        with:
-          release_branch: ${{ github.head_ref }}
-          repo_dir: ${{ github.workspace }}
-          fetch_tags: true
+    uses: nikolareljin/ci-helpers/.github/workflows/release-tag-gate.yml@production

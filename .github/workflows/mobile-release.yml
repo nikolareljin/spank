@@ -1,0 +1,26 @@
+name: mobile-release
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+      - "*.*.*-rc*"
+      - "v*.*.*"
+      - "v*.*.*-rc*"
+
+jobs:
+  apk:
+    uses: nikolareljin/ci-helpers/.github/workflows/release-build.yml@production
+    with:
+      working_directory: "."
+      java_version: "17"
+      flutter_version: "3.38.7"
+      flutter_channel: "stable"
+      lint_command: "./scripts/mobile_lint.sh"
+      test_command: "./scripts/mobile_test.sh"
+      build_command: "./scripts/mobile_build_release_apk.sh"
+      artifact_paths: "mobile/build/app/outputs/flutter-apk/app-release.apk"
+      upload_artifact: true
+      artifact_name: "spank-android-apk"
+      release_tag: ${{ github.ref_name }}
+      release_name: "spank ${{ github.ref_name }}"
