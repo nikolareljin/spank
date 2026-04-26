@@ -49,7 +49,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final Random _random = Random();
 
   late SpankSettings _settings;
-  late Detector _detector;
 
   StreamSubscription<MotionSample>? _subscription;
   AudioCatalog _catalog = AudioCatalog.empty();
@@ -65,10 +64,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _settings = SpankSettings.defaults();
-    _detector = Detector(
-      threshold: _settings.threshold,
-      cooldown: Duration(milliseconds: _settings.cooldownMs),
-    );
     unawaited(_initialize());
   }
 
@@ -105,10 +100,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       setState(() {
         _settings = stored.withAvailableSound(catalog.availablePacks);
         _catalog = catalog;
-        _detector = Detector(
-          threshold: _settings.threshold,
-          cooldown: Duration(milliseconds: _settings.cooldownMs),
-        );
         _loading = false;
         _status = 'Ready. Tap arm to start listening for impact.';
       });
@@ -214,7 +205,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       setState(() {
         _subscription = subscription;
         _armed = true;
-        _detector = detector;
       });
 
       if (_settings.callMode) {
@@ -255,10 +245,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final normalized = next.withAvailableSound(_catalog.availablePacks);
     setState(() {
       _settings = normalized;
-      _detector = Detector(
-        threshold: normalized.threshold,
-        cooldown: Duration(milliseconds: normalized.cooldownMs),
-      );
     });
     await _bridge.saveSettings(normalized);
     if (_armed) {
@@ -1157,8 +1143,4 @@ enum SensitivityPreset {
   final String label;
   final double threshold;
   final int cooldownMs;
-}
-
-extension<E> on List<E> {
-  E? get firstOrNull => isEmpty ? null : first;
 }

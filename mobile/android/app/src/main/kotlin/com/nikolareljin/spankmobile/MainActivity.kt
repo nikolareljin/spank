@@ -35,6 +35,7 @@ class MainActivity : FlutterActivity() {
     private var mediaPlayer: MediaPlayer? = null
     // Speakerphone state captured before any spank playback begins; null when idle.
     private var preSpeakerphoneState: Boolean? = null
+    private var pendingServiceResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -118,14 +119,20 @@ class MainActivity : FlutterActivity() {
             }
 
             "startForegroundService" -> {
-                requestNotificationPermissionIfNeeded()
-                val intent = Intent(this, SpankForegroundService::class.java)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(intent)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED
+                ) {
+                    pendingServiceResult = result
+                    ActivityCompat.requestPermissions(
+                        this,
+                        arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                        REQUEST_CODE_POST_NOTIFICATIONS,
+                    )
                 } else {
-                    startService(intent)
+                    startSpankService()
+                    result.success(null)
                 }
-                result.success(null)
             }
 
             "stopForegroundService" -> {
@@ -137,17 +144,26 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    REQUEST_CODE_POST_NOTIFICATIONS,
-                )
-            }
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_POST_NOTIFICATIONS) {
+            val pending = pendingServiceResult ?: return
+            pendingServiceResult = null
+            startSpankService()
+            pending.success(null)
+        }
+    }
+
+    private fun startSpankService() {
+        val intent = Intent(this, SpankForegroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
         }
     }
 
@@ -159,29 +175,15 @@ class MainActivity : FlutterActivity() {
         mediaPlayer = null
 
         val key = flutterLoader.getLookupKeyForAsset(assetPath)
-        val descriptor = assets.openFd(key)
         val player = MediaPlayer()
-        player.setDataSource(descriptor.fileDescriptor, descriptor.startOffset, descriptor.length)
-        descriptor.close()
+        assets.openFd(key).use { descriptor ->
+            player.setDataSource(descriptor.fileDescriptor, descriptor.startOffset, descriptor.length)
+        }
 
         val originalSpeakerOn = audioManager.isSpeakerphoneOn
         preSpeakerphoneState = originalSpeakerOn
 
-        if (audioMode == "private") {
-            // Route to earpiece — only the user hears it.
-            audioManager.isSpeakerphoneOn = false
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                        .build(),
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                player.setAudioStreamType(AudioManager.STREAM_VOICE_CALL)
-            }
-        } else {
+        if (audioMode == "shared") {
             // Route to loudspeaker — call mic picks it up, others hear it.
             audioManager.isSpeakerphoneOn = true
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -194,6 +196,20 @@ class MainActivity : FlutterActivity() {
             } else {
                 @Suppress("DEPRECATION")
                 player.setAudioStreamType(AudioManager.STREAM_MUSIC)
+            }
+        } else {
+            // Route to earpiece — only the user hears it.
+            audioManager.isSpeakerphoneOn = false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build(),
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                player.setAudioStreamType(AudioManager.STREAM_VOICE_CALL)
             }
         }
 
