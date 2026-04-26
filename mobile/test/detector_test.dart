@@ -111,6 +111,6 @@ void main() {
     final map = SpankSettings.defaults().toMap()
       ..['audioMode'] = 'unknown_value';
     final restored = SpankSettings.fromMap(map);
-    expect(restored.audioMode, 'private');
+    expect(restored.audioMode, SpankSettings.audioModePrivate);
   });
 }

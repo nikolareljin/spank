@@ -59,6 +59,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _armed = false;
   bool _loading = true;
   bool _foregroundServiceActive = false;
+  bool _foregroundServicePending = false;
 
   @override
   void initState() {
@@ -211,6 +212,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       });
 
       if (_settings.callMode) {
+        _foregroundServicePending = true;
         try {
           await _bridge.startForegroundService();
           _foregroundServiceActive = true;
@@ -221,6 +223,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   'Background service unavailable: $err. Monitoring active in foreground only.';
             });
           }
+        } finally {
+          _foregroundServicePending = false;
         }
       }
     } catch (err) {
@@ -238,7 +242,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Future<void> _stopMonitoring({bool updateStatus = true}) async {
     await _subscription?.cancel();
     _subscription = null;
-    if (_foregroundServiceActive) {
+    if (_foregroundServiceActive || _foregroundServicePending) {
       try {
         await _bridge.stopForegroundService();
       } catch (err) {
@@ -250,6 +254,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         }
       }
       _foregroundServiceActive = false;
+      _foregroundServicePending = false;
     }
     if (!mounted) {
       return;

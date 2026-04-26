@@ -155,6 +155,12 @@ class MainActivity : FlutterActivity() {
 
             "stopForegroundService" -> {
                 serviceRequested = false
+                pendingServiceResult?.error(
+                    "service_cancelled",
+                    "Service start cancelled by stop request.",
+                    null,
+                )
+                pendingServiceResult = null
                 stopService(Intent(this, SpankForegroundService::class.java))
                 result.success(null)
             }
