@@ -58,6 +58,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String? _error;
   bool _armed = false;
   bool _loading = true;
+  bool _foregroundServiceActive = false;
 
   @override
   void initState() {
@@ -76,7 +77,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (Platform.isAndroid && _settings.callMode) {
+    if (Platform.isAndroid && _foregroundServiceActive) {
       return;
     }
     if (state == AppLifecycleState.paused ||
@@ -212,6 +213,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       if (_settings.callMode) {
         try {
           await _bridge.startForegroundService();
+          _foregroundServiceActive = true;
         } catch (err) {
           if (mounted) {
             setState(() {
@@ -236,7 +238,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Future<void> _stopMonitoring({bool updateStatus = true}) async {
     await _subscription?.cancel();
     _subscription = null;
-    if (_settings.callMode) {
+    if (_foregroundServiceActive) {
       try {
         await _bridge.stopForegroundService();
       } catch (err) {
@@ -247,6 +249,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           });
         }
       }
+      _foregroundServiceActive = false;
     }
     if (!mounted) {
       return;
