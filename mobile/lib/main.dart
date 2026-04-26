@@ -215,9 +215,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         _foregroundServicePending = true;
         try {
           await _bridge.startForegroundService();
+          final stillActive =
+              mounted && _armed && identical(_subscription, subscription);
+          if (!stillActive) {
+            await _stopMonitoring(updateStatus: false);
+            return;
+          }
           _foregroundServiceActive = true;
         } catch (err) {
-          if (mounted) {
+          if (mounted && _armed && identical(_subscription, subscription)) {
             setState(() {
               _error =
                   'Background service unavailable: $err. Monitoring active in foreground only.';
