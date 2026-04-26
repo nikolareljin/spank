@@ -187,6 +187,7 @@ class MainActivity : FlutterActivity() {
         // Restore speakerphone before releasing the old player: its completion
         // callback won't run once released, so routing would be left dangling.
         preSpeakerphoneState?.let { audioManager.isSpeakerphoneOn = it }
+        preSpeakerphoneState = null
         mediaPlayer?.release()
         mediaPlayer = null
 

@@ -712,8 +712,9 @@ class _SettingsCard extends StatelessWidget {
                 ),
               ],
               selected: {settings.audioMode},
-              onSelectionChanged: (set) =>
-                  onChanged(settings.copyWith(audioMode: set.first)),
+              onSelectionChanged: armed
+                  ? null
+                  : (set) => onChanged(settings.copyWith(audioMode: set.first)),
             ),
             const SizedBox(height: 4),
             Text(
