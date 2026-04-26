@@ -36,6 +36,8 @@ class MainActivity : FlutterActivity() {
     private var mediaPlayer: MediaPlayer? = null
     // Legacy (< API 31): speakerphone state captured before playback begins; null when idle.
     private var preSpeakerphoneState: Boolean? = null
+    // Legacy (< API 31): the value we forced so we can skip restore if the user changed it.
+    private var forcedSpeakerphoneState: Boolean? = null
     // API 31+: true when setCommunicationDevice was called and clearCommunicationDevice is needed.
     private var communicationDeviceActive: Boolean = false
     private var pendingServiceResult: MethodChannel.Result? = null
@@ -229,9 +231,11 @@ class MainActivity : FlutterActivity() {
                 communicationDeviceActive = true
             }
         } else {
+            val forced = audioMode == "shared"
             preSpeakerphoneState = audioManager.isSpeakerphoneOn
+            forcedSpeakerphoneState = forced
             @Suppress("DEPRECATION")
-            audioManager.isSpeakerphoneOn = audioMode == "shared"
+            audioManager.isSpeakerphoneOn = forced
         }
     }
 
@@ -242,9 +246,14 @@ class MainActivity : FlutterActivity() {
                 communicationDeviceActive = false
             }
         } else {
+            val pre = preSpeakerphoneState
+            val forced = forcedSpeakerphoneState
             @Suppress("DEPRECATION")
-            preSpeakerphoneState?.let { audioManager.isSpeakerphoneOn = it }
+            if (pre != null && forced != null && audioManager.isSpeakerphoneOn == forced) {
+                audioManager.isSpeakerphoneOn = pre
+            }
             preSpeakerphoneState = null
+            forcedSpeakerphoneState = null
         }
     }
 
