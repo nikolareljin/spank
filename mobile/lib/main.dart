@@ -228,7 +228,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (_settings.callMode) {
       try {
         await _bridge.stopForegroundService();
-      } catch (_) {}
+      } catch (err) {
+        debugPrint('stopForegroundService failed: $err');
+        if (mounted) {
+          setState(() {
+            _error = 'Failed to stop background service: $err';
+          });
+        }
+      }
     }
     if (!mounted) {
       return;
