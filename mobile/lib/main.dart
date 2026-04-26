@@ -80,6 +80,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_settings.callMode) return;
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
@@ -124,6 +125,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Future<void> _toggleMonitoring() async {
     if (_armed) {
+      if (_settings.callMode) {
+        await _bridge.stopForegroundService();
+      }
       await _stopMonitoring();
       return;
     }
@@ -133,6 +137,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _status = 'Monitoring accelerometer input...';
       _lastEvent = null;
     });
+
+    if (_settings.callMode) {
+      await _bridge.startForegroundService();
+    }
 
     final detector = Detector(
       threshold: _settings.threshold,
@@ -177,7 +185,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             return;
           }
           try {
-            await _bridge.playAsset(asset, volume: _settings.volume);
+            await _bridge.playAsset(
+              asset,
+              volume: _settings.volume,
+              audioMode: _settings.audioMode,
+            );
           } catch (err) {
             if (!mounted) {
               return;
@@ -267,7 +279,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
 
     try {
-      await _bridge.playAsset(asset, volume: _settings.volume);
+      await _bridge.playAsset(
+        asset,
+        volume: _settings.volume,
+        audioMode: _settings.audioMode,
+      );
       if (!mounted) {
         return;
       }
@@ -661,6 +677,49 @@ class _SettingsCard extends StatelessWidget {
             value: settings.dryRun,
             onChanged: (value) => onChanged(settings.copyWith(dryRun: value)),
           ),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Call mode'),
+            subtitle: const Text(
+              'Keep monitoring when app is in the background (e.g. during a video call).',
+            ),
+            value: settings.callMode,
+            onChanged: (value) => onChanged(settings.copyWith(callMode: value)),
+          ),
+          if (settings.callMode) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Audio routing',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 4),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(
+                  value: 'private',
+                  label: Text('Private'),
+                  icon: Icon(Icons.hearing),
+                ),
+                ButtonSegment(
+                  value: 'shared',
+                  label: Text('Shared'),
+                  icon: Icon(Icons.volume_up),
+                ),
+              ],
+              selected: {settings.audioMode},
+              onSelectionChanged: (set) =>
+                  onChanged(settings.copyWith(audioMode: set.first)),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              settings.audioMode == 'private'
+                  ? 'Earpiece only — others on the call cannot hear the sound.'
+                  : 'Loudspeaker — the call mic picks it up, others can hear it.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF6B4A36),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -877,6 +936,8 @@ class SpankSettings {
     required this.soundPack,
     required this.volume,
     required this.dryRun,
+    required this.callMode,
+    required this.audioMode,
   });
 
   factory SpankSettings.defaults() {
@@ -887,6 +948,8 @@ class SpankSettings {
       soundPack: 'pain',
       volume: 1.0,
       dryRun: false,
+      callMode: false,
+      audioMode: 'private',
     );
   }
 
@@ -913,6 +976,10 @@ class SpankSettings {
         1.0,
       ),
       dryRun: map['dryRun'] as bool? ?? defaults.dryRun,
+      callMode: map['callMode'] as bool? ?? defaults.callMode,
+      audioMode: (map['audioMode'] as String?)?.trim().isNotEmpty == true
+          ? map['audioMode']! as String
+          : defaults.audioMode,
     );
   }
 
@@ -922,6 +989,8 @@ class SpankSettings {
   final String soundPack;
   final double volume;
   final bool dryRun;
+  final bool callMode;
+  final String audioMode;
 
   Map<String, Object> toMap() {
     return <String, Object>{
@@ -931,6 +1000,8 @@ class SpankSettings {
       'soundPack': soundPack,
       'volume': volume,
       'dryRun': dryRun,
+      'callMode': callMode,
+      'audioMode': audioMode,
     };
   }
 
@@ -941,6 +1012,8 @@ class SpankSettings {
     String? soundPack,
     double? volume,
     bool? dryRun,
+    bool? callMode,
+    String? audioMode,
   }) {
     return SpankSettings(
       threshold: threshold ?? this.threshold,
@@ -949,6 +1022,8 @@ class SpankSettings {
       soundPack: soundPack ?? this.soundPack,
       volume: volume ?? this.volume,
       dryRun: dryRun ?? this.dryRun,
+      callMode: callMode ?? this.callMode,
+      audioMode: audioMode ?? this.audioMode,
     );
   }
 
@@ -1029,12 +1104,23 @@ class PlatformBridge {
     return _methods.invokeMethod<void>('saveSettings', settings.toMap());
   }
 
-  Future<void> playAsset(String assetPath, {required double volume}) {
+  Future<void> playAsset(
+    String assetPath, {
+    required double volume,
+    required String audioMode,
+  }) {
     return _methods.invokeMethod<void>('playAsset', <String, Object>{
       'assetPath': assetPath,
       'volume': volume,
+      'audioMode': audioMode,
     });
   }
+
+  Future<void> startForegroundService() =>
+      _methods.invokeMethod<void>('startForegroundService');
+
+  Future<void> stopForegroundService() =>
+      _methods.invokeMethod<void>('stopForegroundService');
 
   Stream<MotionSample> motionEvents({required int sampleIntervalMs}) {
     return _motion

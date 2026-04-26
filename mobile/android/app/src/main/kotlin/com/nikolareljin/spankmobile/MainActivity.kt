@@ -1,7 +1,10 @@
 package com.nikolareljin.spankmobile
 
+import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -10,6 +13,8 @@ import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import io.flutter.FlutterInjector
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -21,6 +26,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private lateinit var preferences: SharedPreferences
     private lateinit var sensorManager: SensorManager
+    private lateinit var audioManager: AudioManager
     private lateinit var flutterLoader: FlutterLoader
     private var mediaPlayer: MediaPlayer? = null
 
@@ -29,6 +35,7 @@ class MainActivity : FlutterActivity() {
 
         preferences = getSharedPreferences("spank_mobile", Context.MODE_PRIVATE)
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         flutterLoader = FlutterInjector.instance().flutterLoader()
 
         MethodChannel(
@@ -58,6 +65,8 @@ class MainActivity : FlutterActivity() {
                     "soundPack" to preferences.getString("soundPack", "pain"),
                     "volume" to preferences.getFloat("volume", 1.0f).toDouble(),
                     "dryRun" to preferences.getBoolean("dryRun", false),
+                    "callMode" to preferences.getBoolean("callMode", false),
+                    "audioMode" to preferences.getString("audioMode", "private"),
                 ),
             )
 
@@ -75,6 +84,8 @@ class MainActivity : FlutterActivity() {
                     .putString("soundPack", args["soundPack"] as String)
                     .putFloat("volume", (args["volume"] as Number).toFloat())
                     .putBoolean("dryRun", args["dryRun"] as Boolean)
+                    .putBoolean("callMode", args["callMode"] as Boolean)
+                    .putString("audioMode", args["audioMode"] as String)
                     .apply()
                 result.success(null)
             }
@@ -84,24 +95,55 @@ class MainActivity : FlutterActivity() {
                 val assetPath = args?.get("assetPath") as? String
                 val volume = ((args?.get("volume") as? Number)?.toFloat() ?: 1.0f)
                     .coerceIn(0f, 1f)
+                val audioMode = args?.get("audioMode") as? String ?: "shared"
                 if (assetPath.isNullOrBlank()) {
                     result.error("bad_args", "Missing assetPath.", null)
                     return
                 }
 
                 try {
-                    playAsset(assetPath, volume)
+                    playAsset(assetPath, volume, audioMode)
                     result.success(null)
                 } catch (err: Exception) {
                     result.error("playback_failed", err.message, null)
                 }
             }
 
+            "startForegroundService" -> {
+                requestNotificationPermissionIfNeeded()
+                val intent = Intent(this, SpankForegroundService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(intent)
+                } else {
+                    startService(intent)
+                }
+                result.success(null)
+            }
+
+            "stopForegroundService" -> {
+                stopService(Intent(this, SpankForegroundService::class.java))
+                result.success(null)
+            }
+
             else -> result.notImplemented()
         }
     }
 
-    private fun playAsset(assetPath: String, volume: Float) {
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    0,
+                )
+            }
+        }
+    }
+
+    private fun playAsset(assetPath: String, volume: Float, audioMode: String) {
         mediaPlayer?.release()
         mediaPlayer = null
 
@@ -111,21 +153,42 @@ class MainActivity : FlutterActivity() {
         player.setDataSource(descriptor.fileDescriptor, descriptor.startOffset, descriptor.length)
         descriptor.close()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            player.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build(),
-            )
+        val wasSpeakerOn = audioManager.isSpeakerphoneOn
+
+        if (audioMode == "private") {
+            // Route to earpiece — only the user hears it.
+            audioManager.isSpeakerphoneOn = false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build(),
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                player.setAudioStreamType(AudioManager.STREAM_VOICE_CALL)
+            }
         } else {
-            @Suppress("DEPRECATION")
-            player.setAudioStreamType(AudioManager.STREAM_MUSIC)
+            // Route to loudspeaker — call mic picks it up, others hear it.
+            audioManager.isSpeakerphoneOn = true
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build(),
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                player.setAudioStreamType(AudioManager.STREAM_MUSIC)
+            }
         }
 
         player.setVolume(volume, volume)
         player.setOnCompletionListener {
             it.release()
+            audioManager.isSpeakerphoneOn = wasSpeakerOn
             if (mediaPlayer === it) {
                 mediaPlayer = null
             }
