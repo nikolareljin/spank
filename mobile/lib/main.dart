@@ -78,7 +78,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (Platform.isAndroid && (_foregroundServiceActive || _foregroundServicePending)) {
+    if (Platform.isAndroid &&
+        (_foregroundServiceActive || _foregroundServicePending)) {
       return;
     }
     if (state == AppLifecycleState.paused ||
