@@ -104,7 +104,7 @@ class MainActivity : FlutterActivity() {
                 val assetPath = args?.get("assetPath") as? String
                 val volume = ((args?.get("volume") as? Number)?.toFloat() ?: 1.0f)
                     .coerceIn(0f, 1f)
-                val audioMode = args?.get("audioMode") as? String ?: "private"
+                val audioMode = args?.get("audioMode") as? String
                 if (assetPath.isNullOrBlank()) {
                     result.error("bad_args", "Missing assetPath.", null)
                     return
@@ -123,6 +123,14 @@ class MainActivity : FlutterActivity() {
                     ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                         != PackageManager.PERMISSION_GRANTED
                 ) {
+                    if (pendingServiceResult != null) {
+                        result.error(
+                            "permission_request_in_progress",
+                            "A notification permission request is already in progress.",
+                            null,
+                        )
+                        return
+                    }
                     pendingServiceResult = result
                     ActivityCompat.requestPermissions(
                         this,
@@ -175,7 +183,7 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun playAsset(assetPath: String, volume: Float, audioMode: String) {
+    private fun playAsset(assetPath: String, volume: Float, audioMode: String?) {
         // Restore speakerphone before releasing the old player: its completion
         // callback won't run once released, so routing would be left dangling.
         preSpeakerphoneState?.let { audioManager.isSpeakerphoneOn = it }
@@ -188,12 +196,8 @@ class MainActivity : FlutterActivity() {
             player.setDataSource(descriptor.fileDescriptor, descriptor.startOffset, descriptor.length)
         }
 
-        val originalSpeakerOn = audioManager.isSpeakerphoneOn
-        preSpeakerphoneState = originalSpeakerOn
-
-        if (audioMode == "shared") {
-            // Route to loudspeaker — call mic picks it up, others hear it.
-            audioManager.isSpeakerphoneOn = true
+        if (audioMode == null) {
+            // Legacy plain-media route: no speakerphone manipulation.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 player.setAudioAttributes(
                     AudioAttributes.Builder()
@@ -206,25 +210,44 @@ class MainActivity : FlutterActivity() {
                 player.setAudioStreamType(AudioManager.STREAM_MUSIC)
             }
         } else {
-            // Route to earpiece — only the user hears it.
-            audioManager.isSpeakerphoneOn = false
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                        .build(),
-                )
+            val originalSpeakerOn = audioManager.isSpeakerphoneOn
+            preSpeakerphoneState = originalSpeakerOn
+
+            if (audioMode == "shared") {
+                // Route to loudspeaker — call mic picks it up, others hear it.
+                audioManager.isSpeakerphoneOn = true
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    player.setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build(),
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    player.setAudioStreamType(AudioManager.STREAM_MUSIC)
+                }
             } else {
-                @Suppress("DEPRECATION")
-                player.setAudioStreamType(AudioManager.STREAM_VOICE_CALL)
+                // Route to earpiece — only the user hears it.
+                audioManager.isSpeakerphoneOn = false
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    player.setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build(),
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    player.setAudioStreamType(AudioManager.STREAM_VOICE_CALL)
+                }
             }
         }
 
         player.setVolume(volume, volume)
         player.setOnCompletionListener {
             it.release()
-            audioManager.isSpeakerphoneOn = originalSpeakerOn
+            preSpeakerphoneState?.let { prev -> audioManager.isSpeakerphoneOn = prev }
             preSpeakerphoneState = null
             if (mediaPlayer === it) {
                 mediaPlayer = null
@@ -234,7 +257,7 @@ class MainActivity : FlutterActivity() {
             player.prepare()
             player.start()
         } catch (err: Exception) {
-            audioManager.isSpeakerphoneOn = originalSpeakerOn
+            preSpeakerphoneState?.let { audioManager.isSpeakerphoneOn = it }
             preSpeakerphoneState = null
             player.release()
             throw err

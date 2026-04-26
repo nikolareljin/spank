@@ -173,7 +173,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             await _bridge.playAsset(
               asset,
               volume: _settings.volume,
-              audioMode: _settings.audioMode,
+              audioMode: _settings.callMode ? _settings.audioMode : null,
             );
           } catch (err) {
             if (!mounted) {
@@ -271,7 +271,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       await _bridge.playAsset(
         asset,
         volume: _settings.volume,
-        audioMode: _settings.audioMode,
+        audioMode: _settings.callMode ? _settings.audioMode : null,
       );
       if (!mounted) {
         return;
@@ -1105,13 +1105,11 @@ class PlatformBridge {
   Future<void> playAsset(
     String assetPath, {
     required double volume,
-    required String audioMode,
+    String? audioMode,
   }) {
-    return _methods.invokeMethod<void>('playAsset', <String, Object>{
-      'assetPath': assetPath,
-      'volume': volume,
-      'audioMode': audioMode,
-    });
+    final args = <String, Object>{'assetPath': assetPath, 'volume': volume};
+    if (audioMode != null) args['audioMode'] = audioMode;
+    return _methods.invokeMethod<void>('playAsset', args);
   }
 
   Future<void> startForegroundService() {
