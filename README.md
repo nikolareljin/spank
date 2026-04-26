@@ -12,6 +12,7 @@ The primary experience is the mobile app for Android phones and supported iPhone
   - Native accelerometer and audio bridges on both platforms
   - Bundled `pain`, `halo`, and `sexy` sound packs
   - Foreground monitoring while the app is open
+  - Android: optional **Call Mode** keeps monitoring active while backgrounded during calls, with Private (earpiece-only) and Shared (loudspeaker) audio routing
 - Linux CLI:
   - Raw accelerometers exposed through `/sys/bus/iio/devices/iio:device*`
   - CLI commands for monitoring, diagnostics, and sensor listing
@@ -71,7 +72,7 @@ Current mobile assumptions:
 
 - Android is the primary target
 - iPhone support is configured for iOS 12+
-- Monitoring is foreground-only in v1
+- Android supports background monitoring via Call Mode; iPhone monitoring is foreground-only
 - Older devices may need threshold tuning in the in-app Tap Test screen
 
 For full Android and iPhone setup, build, install, and run instructions, see [`docs/mobile-build-run.md`](docs/mobile-build-run.md).

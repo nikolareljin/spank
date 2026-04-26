@@ -129,6 +129,17 @@ Notes:
 5. Adjust `Threshold`, `Cooldown`, `Volume`, and `Sound Pack` as needed.
 6. Use `Dry run` if you want to tune detection without playing sound.
 
+### Call Mode (Android only)
+
+Enable **Call Mode** in Settings to keep monitoring active while the app is backgrounded during a phone or video call. A persistent notification appears while armed; tap Stop or dismiss the notification to disarm.
+
+With Call Mode on, select an **Audio Mode**:
+
+- **Private** — sound plays through the earpiece. Only you hear it; the call microphone does not pick it up.
+- **Shared** — sound plays through the loudspeaker. The call microphone picks it up so other participants hear it too.
+
+Android 13+ will prompt for notification permission the first time Call Mode is armed. Deny the prompt to keep monitoring foreground-only.
+
 ## Troubleshooting
 
 - No sound:
@@ -146,3 +157,9 @@ Notes:
 - Android install fails:
   - Confirm USB debugging is enabled.
   - If sideloading an APK, allow installs from unknown sources on the device.
+- Call Mode notification does not appear:
+  - Grant notification permission in device Settings → Apps → Spank → Notifications.
+  - Without the permission (Android 13+) the foreground service cannot start; monitoring remains foreground-only.
+- Call Mode armed but monitoring stops when backgrounded:
+  - The foreground service may have failed to start (check the in-app error banner).
+  - Some battery-optimization modes kill foreground services; add Spank to the battery-unrestricted list in device settings.
