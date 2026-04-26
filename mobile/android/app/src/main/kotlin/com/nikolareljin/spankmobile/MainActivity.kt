@@ -36,6 +36,7 @@ class MainActivity : FlutterActivity() {
     // Speakerphone state captured before any spank playback begins; null when idle.
     private var preSpeakerphoneState: Boolean? = null
     private var pendingServiceResult: MethodChannel.Result? = null
+    private var serviceRequested: Boolean = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -57,6 +58,13 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        pendingServiceResult?.error(
+            "activity_destroyed",
+            "Activity was destroyed before notification permission was resolved.",
+            null,
+        )
+        pendingServiceResult = null
+        serviceRequested = false
         mediaPlayer?.release()
         mediaPlayer = null
         preSpeakerphoneState?.let { audioManager.isSpeakerphoneOn = it }
@@ -131,6 +139,7 @@ class MainActivity : FlutterActivity() {
                         )
                         return
                     }
+                    serviceRequested = true
                     pendingServiceResult = result
                     ActivityCompat.requestPermissions(
                         this,
@@ -138,12 +147,14 @@ class MainActivity : FlutterActivity() {
                         REQUEST_CODE_POST_NOTIFICATIONS,
                     )
                 } else {
+                    serviceRequested = true
                     startSpankService()
                     result.success(null)
                 }
             }
 
             "stopForegroundService" -> {
+                serviceRequested = false
                 stopService(Intent(this, SpankForegroundService::class.java))
                 result.success(null)
             }
@@ -162,7 +173,9 @@ class MainActivity : FlutterActivity() {
             val pending = pendingServiceResult ?: return
             pendingServiceResult = null
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startSpankService()
+                if (serviceRequested) {
+                    startSpankService()
+                }
                 pending.success(null)
             } else {
                 pending.error(
