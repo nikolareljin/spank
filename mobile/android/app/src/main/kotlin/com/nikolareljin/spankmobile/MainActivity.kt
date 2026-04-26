@@ -153,8 +153,16 @@ class MainActivity : FlutterActivity() {
         if (requestCode == REQUEST_CODE_POST_NOTIFICATIONS) {
             val pending = pendingServiceResult ?: return
             pendingServiceResult = null
-            startSpankService()
-            pending.success(null)
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startSpankService()
+                pending.success(null)
+            } else {
+                pending.error(
+                    "POST_NOTIFICATIONS_DENIED",
+                    "Notification permission is required to enable call mode.",
+                    null,
+                )
+            }
         }
     }
 
