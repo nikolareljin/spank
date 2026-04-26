@@ -93,7 +93,7 @@ void main() {
       volume: 0.4,
       dryRun: true,
       callMode: true,
-      audioMode: 'shared',
+      audioMode: SpankSettings.audioModeShared,
     );
 
     final restored = SpankSettings.fromMap(settings.toMap());

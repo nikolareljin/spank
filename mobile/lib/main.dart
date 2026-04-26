@@ -76,7 +76,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (Platform.isAndroid && _settings.callMode) return;
+    if (Platform.isAndroid && _settings.callMode) {
+      return;
+    }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
@@ -1129,17 +1131,23 @@ class PlatformBridge {
     String? audioMode,
   }) {
     final args = <String, Object>{'assetPath': assetPath, 'volume': volume};
-    if (audioMode != null) args['audioMode'] = audioMode;
+    if (audioMode != null) {
+      args['audioMode'] = audioMode;
+    }
     return _methods.invokeMethod<void>('playAsset', args);
   }
 
   Future<void> startForegroundService() {
-    if (!Platform.isAndroid) return Future.value();
+    if (!Platform.isAndroid) {
+      return Future.value();
+    }
     return _methods.invokeMethod<void>('startForegroundService');
   }
 
   Future<void> stopForegroundService() {
-    if (!Platform.isAndroid) return Future.value();
+    if (!Platform.isAndroid) {
+      return Future.value();
+    }
     return _methods.invokeMethod<void>('stopForegroundService');
   }
 
