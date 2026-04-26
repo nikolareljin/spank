@@ -24,6 +24,10 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private companion object {
+        private const val REQUEST_CODE_POST_NOTIFICATIONS = 1001
+    }
+
     private lateinit var preferences: SharedPreferences
     private lateinit var sensorManager: SensorManager
     private lateinit var audioManager: AudioManager
@@ -54,6 +58,8 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         mediaPlayer?.release()
         mediaPlayer = null
+        preSpeakerphoneState?.let { audioManager.isSpeakerphoneOn = it }
+        preSpeakerphoneState = null
         super.onDestroy()
     }
 
@@ -97,7 +103,7 @@ class MainActivity : FlutterActivity() {
                 val assetPath = args?.get("assetPath") as? String
                 val volume = ((args?.get("volume") as? Number)?.toFloat() ?: 1.0f)
                     .coerceIn(0f, 1f)
-                val audioMode = args?.get("audioMode") as? String ?: "shared"
+                val audioMode = args?.get("audioMode") as? String ?: "private"
                 if (assetPath.isNullOrBlank()) {
                     result.error("bad_args", "Missing assetPath.", null)
                     return
@@ -139,7 +145,7 @@ class MainActivity : FlutterActivity() {
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    0,
+                    REQUEST_CODE_POST_NOTIFICATIONS,
                 )
             }
         }

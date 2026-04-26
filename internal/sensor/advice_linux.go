@@ -32,4 +32,3 @@ func DiscoveryAdvice(dmiRoot string) []string {
 
 	return advice
 }
-

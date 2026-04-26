@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_settings.callMode) return;
+    if (Platform.isAndroid && _settings.callMode) return;
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
@@ -727,9 +727,9 @@ class _SettingsCard extends StatelessWidget {
               settings.audioMode == 'private'
                   ? 'Earpiece only — others on the call cannot hear the sound.'
                   : 'Loudspeaker — the call mic picks it up, others can hear it.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF6B4A36),
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B4A36)),
             ),
           ],
         ],

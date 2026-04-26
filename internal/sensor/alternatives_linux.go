@@ -139,4 +139,3 @@ func containsAny(value string, needles ...string) bool {
 	}
 	return false
 }
-

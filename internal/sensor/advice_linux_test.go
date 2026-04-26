@@ -22,4 +22,3 @@ func TestDiscoveryAdviceIncludesThinkPadT14Gen1Guidance(t *testing.T) {
 		t.Fatalf("advice = %q", advice)
 	}
 }
-
