@@ -208,7 +208,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       });
 
       if (_settings.callMode) {
-        await _bridge.startForegroundService();
+        try {
+          await _bridge.startForegroundService();
+        } catch (err) {
+          if (mounted) {
+            setState(() {
+              _error =
+                  'Background service unavailable: $err. Monitoring active in foreground only.';
+            });
+          }
+        }
       }
     } catch (err) {
       await _stopMonitoring(updateStatus: false);
@@ -701,12 +710,12 @@ class _SettingsCard extends StatelessWidget {
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(
-                  value: 'private',
+                  value: SpankSettings.audioModePrivate,
                   label: Text('Private'),
                   icon: Icon(Icons.hearing),
                 ),
                 ButtonSegment(
-                  value: 'shared',
+                  value: SpankSettings.audioModeShared,
                   label: Text('Shared'),
                   icon: Icon(Icons.volume_up),
                 ),
@@ -718,7 +727,7 @@ class _SettingsCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              settings.audioMode == 'private'
+              settings.audioMode == SpankSettings.audioModePrivate
                   ? 'Earpiece only — others on the call cannot hear the sound.'
                   : 'Loudspeaker — the call mic picks it up, others can hear it.',
               style: Theme.of(
@@ -935,6 +944,9 @@ class MotionSample {
 }
 
 class SpankSettings {
+  static const String audioModePrivate = 'private';
+  static const String audioModeShared = 'shared';
+
   SpankSettings({
     required this.threshold,
     required this.sampleIntervalMs,
@@ -955,7 +967,7 @@ class SpankSettings {
       volume: 1.0,
       dryRun: false,
       callMode: false,
-      audioMode: 'private',
+      audioMode: SpankSettings.audioModePrivate,
     );
   }
 
@@ -983,9 +995,10 @@ class SpankSettings {
       ),
       dryRun: map['dryRun'] as bool? ?? defaults.dryRun,
       callMode: map['callMode'] as bool? ?? defaults.callMode,
-      audioMode: (map['audioMode'] as String?)?.trim() == 'shared'
-          ? 'shared'
-          : 'private',
+      audioMode:
+          (map['audioMode'] as String?)?.trim() == SpankSettings.audioModeShared
+          ? SpankSettings.audioModeShared
+          : SpankSettings.audioModePrivate,
     );
   }
 
