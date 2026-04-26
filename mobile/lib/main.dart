@@ -252,8 +252,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (_foregroundServiceActive || _foregroundServicePending) {
       try {
         await _bridge.stopForegroundService();
-        _foregroundServiceActive = false;
-        _foregroundServicePending = false;
       } catch (err) {
         debugPrint('stopForegroundService failed: $err');
         if (mounted) {
@@ -261,6 +259,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             _error = 'Failed to stop background service: $err';
           });
         }
+      } finally {
+        _foregroundServiceActive = false;
+        _foregroundServicePending = false;
       }
     }
     if (!mounted) {

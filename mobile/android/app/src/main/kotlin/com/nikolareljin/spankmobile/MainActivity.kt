@@ -149,9 +149,14 @@ class MainActivity : FlutterActivity() {
                         REQUEST_CODE_POST_NOTIFICATIONS,
                     )
                 } else {
-                    serviceRequested = true
-                    startSpankService()
-                    result.success(null)
+                    try {
+                        serviceRequested = true
+                        startSpankService()
+                        result.success(null)
+                    } catch (err: Exception) {
+                        serviceRequested = false
+                        result.error("service_start_failed", err.message, null)
+                    }
                 }
             }
 
@@ -182,9 +187,16 @@ class MainActivity : FlutterActivity() {
             pendingServiceResult = null
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 if (serviceRequested) {
-                    startSpankService()
+                    try {
+                        startSpankService()
+                        pending.success(null)
+                    } catch (err: Exception) {
+                        serviceRequested = false
+                        pending.error("service_start_failed", err.message, null)
+                    }
+                } else {
+                    pending.success(null)
                 }
-                pending.success(null)
             } else {
                 pending.error(
                     "post_notifications_denied",
