@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -125,9 +126,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Future<void> _toggleMonitoring() async {
     if (_armed) {
-      if (_settings.callMode) {
-        await _bridge.stopForegroundService();
-      }
       await _stopMonitoring();
       return;
     }
@@ -137,10 +135,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _status = 'Monitoring accelerometer input...';
       _lastEvent = null;
     });
-
-    if (_settings.callMode) {
-      await _bridge.startForegroundService();
-    }
 
     final detector = Detector(
       threshold: _settings.threshold,
@@ -206,8 +200,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           setState(() {
             _error = 'Sensor stream failed: $err';
             _status = 'Monitoring stopped because sensor access failed.';
-            _armed = false;
           });
+          unawaited(_stopMonitoring(updateStatus: false));
         },
         cancelOnError: true,
       );
@@ -222,12 +216,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         _armed = true;
         _detector = detector;
       });
+
+      if (_settings.callMode) {
+        await _bridge.startForegroundService();
+      }
     } catch (err) {
+      await _stopMonitoring(updateStatus: false);
       if (!mounted) {
         return;
       }
       setState(() {
-        _armed = false;
         _error = 'Unable to start monitoring: $err';
         _status = 'Monitoring did not start.';
       });
@@ -237,6 +235,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Future<void> _stopMonitoring({bool updateStatus = true}) async {
     await _subscription?.cancel();
     _subscription = null;
+    if (_settings.callMode) {
+      try {
+        await _bridge.stopForegroundService();
+      } catch (_) {}
+    }
     if (!mounted) {
       return;
     }
@@ -365,6 +368,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     _SettingsCard(
                       settings: _settings,
                       availablePacks: _catalog.availablePacks,
+                      armed: _armed,
                       onChanged: (next) {
                         unawaited(_saveSettings(next));
                       },
@@ -579,11 +583,13 @@ class _SettingsCard extends StatelessWidget {
     required this.settings,
     required this.availablePacks,
     required this.onChanged,
+    required this.armed,
   });
 
   final SpankSettings settings;
   final List<String> availablePacks;
   final ValueChanged<SpankSettings> onChanged;
+  final bool armed;
 
   @override
   Widget build(BuildContext context) {
@@ -677,16 +683,22 @@ class _SettingsCard extends StatelessWidget {
             value: settings.dryRun,
             onChanged: (value) => onChanged(settings.copyWith(dryRun: value)),
           ),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Call mode'),
-            subtitle: const Text(
-              'Keep monitoring when app is in the background (e.g. during a video call).',
+          if (Platform.isAndroid) ...[
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Call mode'),
+              subtitle: Text(
+                armed
+                    ? 'Stop monitoring before changing this setting.'
+                    : 'Keep monitoring when app is in the background (e.g. during a video call).',
+              ),
+              value: settings.callMode,
+              onChanged: armed
+                  ? null
+                  : (value) => onChanged(settings.copyWith(callMode: value)),
             ),
-            value: settings.callMode,
-            onChanged: (value) => onChanged(settings.copyWith(callMode: value)),
-          ),
-          if (settings.callMode) ...[
+          ],
+          if (Platform.isAndroid && settings.callMode) ...[
             const SizedBox(height: 8),
             Text(
               'Audio routing',
@@ -977,9 +989,9 @@ class SpankSettings {
       ),
       dryRun: map['dryRun'] as bool? ?? defaults.dryRun,
       callMode: map['callMode'] as bool? ?? defaults.callMode,
-      audioMode: (map['audioMode'] as String?)?.trim().isNotEmpty == true
-          ? map['audioMode']! as String
-          : defaults.audioMode,
+      audioMode: (map['audioMode'] as String?)?.trim() == 'shared'
+          ? 'shared'
+          : 'private',
     );
   }
 
@@ -1116,11 +1128,15 @@ class PlatformBridge {
     });
   }
 
-  Future<void> startForegroundService() =>
-      _methods.invokeMethod<void>('startForegroundService');
+  Future<void> startForegroundService() {
+    if (!Platform.isAndroid) return Future.value();
+    return _methods.invokeMethod<void>('startForegroundService');
+  }
 
-  Future<void> stopForegroundService() =>
-      _methods.invokeMethod<void>('stopForegroundService');
+  Future<void> stopForegroundService() {
+    if (!Platform.isAndroid) return Future.value();
+    return _methods.invokeMethod<void>('stopForegroundService');
+  }
 
   Stream<MotionSample> motionEvents({required int sampleIntervalMs}) {
     return _motion

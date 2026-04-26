@@ -29,6 +29,8 @@ class MainActivity : FlutterActivity() {
     private lateinit var audioManager: AudioManager
     private lateinit var flutterLoader: FlutterLoader
     private var mediaPlayer: MediaPlayer? = null
+    // Speakerphone state captured before any spank playback begins; null when idle.
+    private var preSpeakerphoneState: Boolean? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -144,6 +146,9 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun playAsset(assetPath: String, volume: Float, audioMode: String) {
+        // Restore speakerphone before releasing the old player: its completion
+        // callback won't run once released, so routing would be left dangling.
+        preSpeakerphoneState?.let { audioManager.isSpeakerphoneOn = it }
         mediaPlayer?.release()
         mediaPlayer = null
 
@@ -153,7 +158,8 @@ class MainActivity : FlutterActivity() {
         player.setDataSource(descriptor.fileDescriptor, descriptor.startOffset, descriptor.length)
         descriptor.close()
 
-        val wasSpeakerOn = audioManager.isSpeakerphoneOn
+        val originalSpeakerOn = audioManager.isSpeakerphoneOn
+        preSpeakerphoneState = originalSpeakerOn
 
         if (audioMode == "private") {
             // Route to earpiece — only the user hears it.
@@ -188,13 +194,21 @@ class MainActivity : FlutterActivity() {
         player.setVolume(volume, volume)
         player.setOnCompletionListener {
             it.release()
-            audioManager.isSpeakerphoneOn = wasSpeakerOn
+            audioManager.isSpeakerphoneOn = originalSpeakerOn
+            preSpeakerphoneState = null
             if (mediaPlayer === it) {
                 mediaPlayer = null
             }
         }
-        player.prepare()
-        player.start()
+        try {
+            player.prepare()
+            player.start()
+        } catch (err: Exception) {
+            audioManager.isSpeakerphoneOn = originalSpeakerOn
+            preSpeakerphoneState = null
+            player.release()
+            throw err
+        }
         mediaPlayer = player
     }
 

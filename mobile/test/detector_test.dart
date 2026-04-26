@@ -92,6 +92,8 @@ void main() {
       soundPack: 'halo',
       volume: 0.4,
       dryRun: true,
+      callMode: true,
+      audioMode: 'shared',
     );
 
     final restored = SpankSettings.fromMap(settings.toMap());
@@ -101,5 +103,14 @@ void main() {
     expect(restored.soundPack, settings.soundPack);
     expect(restored.volume, settings.volume);
     expect(restored.dryRun, settings.dryRun);
+    expect(restored.callMode, settings.callMode);
+    expect(restored.audioMode, settings.audioMode);
+  });
+
+  test('settings fromMap rejects unknown audioMode', () {
+    final map = SpankSettings.defaults().toMap()
+      ..['audioMode'] = 'unknown_value';
+    final restored = SpankSettings.fromMap(map);
+    expect(restored.audioMode, 'private');
   });
 }
