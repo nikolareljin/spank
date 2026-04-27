@@ -11,9 +11,22 @@ APK="$MOBILE_DIR/build/app/outputs/flutter-apk/app-debug.apk"
 
 install_dependencies_spank_mobile
 
-# Verify a device is reachable
-if ! adb get-state >/dev/null 2>&1; then
+# Verify exactly one device is reachable (or the one named by ANDROID_SERIAL).
+_connected_devices() {
+  adb devices 2>/dev/null | awk 'NR > 1 && $2 == "device" { print $1 }'
+}
+CONNECTED_DEVICES=$(_connected_devices)
+DEVICE_COUNT=$(printf '%s\n' "$CONNECTED_DEVICES" | grep -c . || true)
+if [[ -n "${ANDROID_SERIAL:-}" ]]; then
+  if ! printf '%s\n' "$CONNECTED_DEVICES" | grep -Fxq "$ANDROID_SERIAL"; then
+    print_error "Device '$ANDROID_SERIAL' (ANDROID_SERIAL) not found. Connected: ${CONNECTED_DEVICES:-none}"
+    exit 1
+  fi
+elif [[ "$DEVICE_COUNT" -eq 0 ]]; then
   print_error "No Android device/emulator detected — connect a device or start an emulator."
+  exit 1
+elif [[ "$DEVICE_COUNT" -gt 1 ]]; then
+  print_error "Multiple devices detected — set ANDROID_SERIAL to choose one:\n$CONNECTED_DEVICES"
   exit 1
 fi
 

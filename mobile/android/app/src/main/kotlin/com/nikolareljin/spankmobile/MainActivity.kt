@@ -200,6 +200,7 @@ class MainActivity : FlutterActivity() {
                     pending.success(null)
                 }
             } else {
+                serviceRequested = false
                 pending.error(
                     "post_notifications_denied",
                     "Notification permission is required to enable call mode.",
