@@ -131,7 +131,7 @@ Notes:
 
 ### Call Mode (Android only)
 
-Enable **Call Mode** in Settings to keep monitoring active while the app is backgrounded during a phone or video call. A persistent notification appears while armed; tap Stop or dismiss the notification to disarm.
+Enable **Call Mode** in Settings to keep monitoring active while the app is backgrounded during a phone or video call. A persistent notification appears while armed to show that background monitoring is active; to disarm, return to the app and tap `Stop`.
 
 With Call Mode on, select an **Audio Mode**:
 

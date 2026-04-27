@@ -227,8 +227,7 @@ class MainActivity : FlutterActivity() {
             val device = audioManager.availableCommunicationDevices
                 .firstOrNull { it.type == targetType }
             if (device != null) {
-                audioManager.setCommunicationDevice(device)
-                communicationDeviceActive = true
+                communicationDeviceActive = audioManager.setCommunicationDevice(device)
             }
         } else {
             val forced = audioMode == "shared"
@@ -321,6 +320,14 @@ class MainActivity : FlutterActivity() {
             if (mediaPlayer === it) {
                 mediaPlayer = null
             }
+        }
+        player.setOnErrorListener { mp, _, _ ->
+            restoreAudioRouting()
+            mp.release()
+            if (mediaPlayer === mp) {
+                mediaPlayer = null
+            }
+            true
         }
         try {
             player.prepare()

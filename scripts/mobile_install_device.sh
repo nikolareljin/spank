@@ -6,7 +6,7 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPTS_DIR/mobile_install_deps.sh"
 
 PACKAGE="com.nikolareljin.spankmobile"
-ACTIVITY="$PACKAGE/io.flutter.embedding.android.FlutterActivity"
+ACTIVITY="$PACKAGE/.MainActivity"
 APK="$MOBILE_DIR/build/app/outputs/flutter-apk/app-debug.apk"
 
 install_dependencies_spank_mobile
@@ -51,9 +51,13 @@ if [[ -n "$AAPT" ]]; then
 fi
 
 log_info "Installing $APK..."
-INSTALL_OUT=$(adb install -r "$APK" 2>&1)
+if INSTALL_OUT=$(adb install -r "$APK" 2>&1); then
+  INSTALL_STATUS=0
+else
+  INSTALL_STATUS=1
+fi
 echo "$INSTALL_OUT"
-if echo "$INSTALL_OUT" | grep -q "^Failure"; then
+if [[ "$INSTALL_STATUS" -ne 0 ]] || echo "$INSTALL_OUT" | grep -q "^Failure"; then
   print_error "APK install failed."
   exit 1
 fi
