@@ -38,18 +38,6 @@ install_dependencies_spank_mobile() {
     log_info "git: $(git --version)"
   fi
 
-  # go
-  if _spank_need go; then
-    log_info "Installing Go..."
-    case "$os" in
-      linux) install_dependencies golang-go ;;
-      mac)   brew install go ;;
-      *)     print_error "Unsupported OS '$os'. Install Go manually."; return 1 ;;
-    esac
-  else
-    log_info "Go: $(go version)"
-  fi
-
   # adb
   if _spank_need adb; then
     log_info "Installing ADB (Android platform tools)..."
