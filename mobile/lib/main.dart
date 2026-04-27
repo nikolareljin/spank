@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -48,7 +49,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final Random _random = Random();
 
   late SpankSettings _settings;
-  late Detector _detector;
 
   StreamSubscription<MotionSample>? _subscription;
   AudioCatalog _catalog = AudioCatalog.empty();
@@ -58,16 +58,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String? _error;
   bool _armed = false;
   bool _loading = true;
+  bool _foregroundServiceActive = false;
+  bool _foregroundServicePending = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _settings = SpankSettings.defaults();
-    _detector = Detector(
-      threshold: _settings.threshold,
-      cooldown: Duration(milliseconds: _settings.cooldownMs),
-    );
     unawaited(_initialize());
   }
 
@@ -80,6 +78,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (Platform.isAndroid &&
+        (_foregroundServiceActive || _foregroundServicePending)) {
+      return;
+    }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
@@ -103,10 +105,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       setState(() {
         _settings = stored.withAvailableSound(catalog.availablePacks);
         _catalog = catalog;
-        _detector = Detector(
-          threshold: _settings.threshold,
-          cooldown: Duration(milliseconds: _settings.cooldownMs),
-        );
         _loading = false;
         _status = 'Ready. Tap arm to start listening for impact.';
       });
@@ -177,7 +175,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             return;
           }
           try {
-            await _bridge.playAsset(asset, volume: _settings.volume);
+            await _bridge.playAsset(
+              asset,
+              volume: _settings.volume,
+              audioMode: _settings.callMode ? _settings.audioMode : null,
+            );
           } catch (err) {
             if (!mounted) {
               return;
@@ -194,8 +196,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           setState(() {
             _error = 'Sensor stream failed: $err';
             _status = 'Monitoring stopped because sensor access failed.';
-            _armed = false;
           });
+          unawaited(_stopMonitoring(updateStatus: false));
         },
         cancelOnError: true,
       );
@@ -208,14 +210,36 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       setState(() {
         _subscription = subscription;
         _armed = true;
-        _detector = detector;
       });
+
+      if (_settings.callMode) {
+        _foregroundServicePending = true;
+        try {
+          await _bridge.startForegroundService();
+          final stillActive =
+              mounted && _armed && identical(_subscription, subscription);
+          if (!stillActive) {
+            await _stopMonitoring(updateStatus: false);
+            return;
+          }
+          _foregroundServiceActive = true;
+        } catch (err) {
+          if (mounted && _armed && identical(_subscription, subscription)) {
+            setState(() {
+              _error =
+                  'Background service unavailable: $err. Monitoring active in foreground only.';
+            });
+          }
+        } finally {
+          _foregroundServicePending = false;
+        }
+      }
     } catch (err) {
+      await _stopMonitoring(updateStatus: false);
       if (!mounted) {
         return;
       }
       setState(() {
-        _armed = false;
         _error = 'Unable to start monitoring: $err';
         _status = 'Monitoring did not start.';
       });
@@ -225,6 +249,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Future<void> _stopMonitoring({bool updateStatus = true}) async {
     await _subscription?.cancel();
     _subscription = null;
+    if (_foregroundServiceActive || _foregroundServicePending) {
+      try {
+        await _bridge.stopForegroundService();
+      } catch (err) {
+        debugPrint('stopForegroundService failed: $err');
+        if (mounted) {
+          setState(() {
+            _error = 'Failed to stop background service: $err';
+          });
+        }
+      } finally {
+        _foregroundServiceActive = false;
+        _foregroundServicePending = false;
+      }
+    }
     if (!mounted) {
       return;
     }
@@ -240,10 +279,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final normalized = next.withAvailableSound(_catalog.availablePacks);
     setState(() {
       _settings = normalized;
-      _detector = Detector(
-        threshold: normalized.threshold,
-        cooldown: Duration(milliseconds: normalized.cooldownMs),
-      );
     });
     await _bridge.saveSettings(normalized);
     if (_armed) {
@@ -267,7 +302,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
 
     try {
-      await _bridge.playAsset(asset, volume: _settings.volume);
+      await _bridge.playAsset(
+        asset,
+        volume: _settings.volume,
+        audioMode: _settings.callMode ? _settings.audioMode : null,
+      );
       if (!mounted) {
         return;
       }
@@ -349,6 +388,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     _SettingsCard(
                       settings: _settings,
                       availablePacks: _catalog.availablePacks,
+                      armed: _armed,
                       onChanged: (next) {
                         unawaited(_saveSettings(next));
                       },
@@ -563,11 +603,13 @@ class _SettingsCard extends StatelessWidget {
     required this.settings,
     required this.availablePacks,
     required this.onChanged,
+    required this.armed,
   });
 
   final SpankSettings settings;
   final List<String> availablePacks;
   final ValueChanged<SpankSettings> onChanged;
+  final bool armed;
 
   @override
   Widget build(BuildContext context) {
@@ -661,6 +703,56 @@ class _SettingsCard extends StatelessWidget {
             value: settings.dryRun,
             onChanged: (value) => onChanged(settings.copyWith(dryRun: value)),
           ),
+          if (Platform.isAndroid) ...[
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Call mode'),
+              subtitle: Text(
+                armed
+                    ? 'Stop monitoring before changing this setting.'
+                    : 'Keep monitoring when app is in the background (e.g. during a video call).',
+              ),
+              value: settings.callMode,
+              onChanged: armed
+                  ? null
+                  : (value) => onChanged(settings.copyWith(callMode: value)),
+            ),
+          ],
+          if (Platform.isAndroid && settings.callMode) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Audio routing',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 4),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(
+                  value: SpankSettings.audioModePrivate,
+                  label: Text('Private'),
+                  icon: Icon(Icons.hearing),
+                ),
+                ButtonSegment(
+                  value: SpankSettings.audioModeShared,
+                  label: Text('Shared'),
+                  icon: Icon(Icons.volume_up),
+                ),
+              ],
+              selected: {settings.audioMode},
+              onSelectionChanged: armed
+                  ? null
+                  : (set) => onChanged(settings.copyWith(audioMode: set.first)),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              settings.audioMode == SpankSettings.audioModePrivate
+                  ? 'Earpiece only — others on the call cannot hear the sound.'
+                  : 'Loudspeaker — the call mic picks it up, others can hear it.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B4A36)),
+            ),
+          ],
         ],
       ),
     );
@@ -870,6 +962,9 @@ class MotionSample {
 }
 
 class SpankSettings {
+  static const String audioModePrivate = 'private';
+  static const String audioModeShared = 'shared';
+
   SpankSettings({
     required this.threshold,
     required this.sampleIntervalMs,
@@ -877,6 +972,8 @@ class SpankSettings {
     required this.soundPack,
     required this.volume,
     required this.dryRun,
+    required this.callMode,
+    required this.audioMode,
   });
 
   factory SpankSettings.defaults() {
@@ -887,6 +984,8 @@ class SpankSettings {
       soundPack: 'pain',
       volume: 1.0,
       dryRun: false,
+      callMode: false,
+      audioMode: SpankSettings.audioModePrivate,
     );
   }
 
@@ -913,6 +1012,11 @@ class SpankSettings {
         1.0,
       ),
       dryRun: map['dryRun'] as bool? ?? defaults.dryRun,
+      callMode: map['callMode'] as bool? ?? defaults.callMode,
+      audioMode:
+          (map['audioMode'] as String?)?.trim() == SpankSettings.audioModeShared
+          ? SpankSettings.audioModeShared
+          : SpankSettings.audioModePrivate,
     );
   }
 
@@ -922,6 +1026,8 @@ class SpankSettings {
   final String soundPack;
   final double volume;
   final bool dryRun;
+  final bool callMode;
+  final String audioMode;
 
   Map<String, Object> toMap() {
     return <String, Object>{
@@ -931,6 +1037,8 @@ class SpankSettings {
       'soundPack': soundPack,
       'volume': volume,
       'dryRun': dryRun,
+      'callMode': callMode,
+      'audioMode': audioMode,
     };
   }
 
@@ -941,6 +1049,8 @@ class SpankSettings {
     String? soundPack,
     double? volume,
     bool? dryRun,
+    bool? callMode,
+    String? audioMode,
   }) {
     return SpankSettings(
       threshold: threshold ?? this.threshold,
@@ -949,6 +1059,8 @@ class SpankSettings {
       soundPack: soundPack ?? this.soundPack,
       volume: volume ?? this.volume,
       dryRun: dryRun ?? this.dryRun,
+      callMode: callMode ?? this.callMode,
+      audioMode: audioMode ?? this.audioMode,
     );
   }
 
@@ -1029,11 +1141,30 @@ class PlatformBridge {
     return _methods.invokeMethod<void>('saveSettings', settings.toMap());
   }
 
-  Future<void> playAsset(String assetPath, {required double volume}) {
-    return _methods.invokeMethod<void>('playAsset', <String, Object>{
-      'assetPath': assetPath,
-      'volume': volume,
-    });
+  Future<void> playAsset(
+    String assetPath, {
+    required double volume,
+    String? audioMode,
+  }) {
+    final args = <String, Object>{'assetPath': assetPath, 'volume': volume};
+    if (audioMode != null) {
+      args['audioMode'] = audioMode;
+    }
+    return _methods.invokeMethod<void>('playAsset', args);
+  }
+
+  Future<void> startForegroundService() {
+    if (!Platform.isAndroid) {
+      return Future.value();
+    }
+    return _methods.invokeMethod<void>('startForegroundService');
+  }
+
+  Future<void> stopForegroundService() {
+    if (!Platform.isAndroid) {
+      return Future.value();
+    }
+    return _methods.invokeMethod<void>('stopForegroundService');
   }
 
   Stream<MotionSample> motionEvents({required int sampleIntervalMs}) {
@@ -1055,8 +1186,4 @@ enum SensitivityPreset {
   final String label;
   final double threshold;
   final int cooldownMs;
-}
-
-extension<E> on List<E> {
-  E? get firstOrNull => isEmpty ? null : first;
 }

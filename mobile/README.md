@@ -30,7 +30,8 @@ flutter run -d android
 
 - Android target: `minSdk 21`
 - iPhone target: `iOS 12+`
-- Foreground-only monitoring in v1
+- Android supports background monitoring via **Call Mode** (foreground service + `POST_NOTIFICATIONS` permission on API 33+)
+- iPhone monitoring is foreground-only
 - Sound assets are copied from `../internal/audio/assets/`
 
 For full device setup and build instructions, see [`../docs/mobile-build-run.md`](../docs/mobile-build-run.md).

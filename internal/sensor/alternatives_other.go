@@ -5,4 +5,3 @@ package sensor
 func ExplainDiscoveryFailure(err error) error {
 	return err
 }
-
