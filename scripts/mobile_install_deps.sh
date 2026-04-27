@@ -4,20 +4,27 @@
 # When executed directly, installs all deps immediately.
 # Safe to run repeatedly — skips tools that are already present.
 
-# Only enable strict mode when executed directly; callers control their own shell options.
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  set -euo pipefail
-fi
-
 # shellcheck source=./common.sh
+# Note: sourcing common.sh sets -euo pipefail unconditionally in the current shell.
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
 shlib_import deps os
 
 _spank_need() { ! command -v "$1" >/dev/null 2>&1; }
 
+_spank_require_brew() {
+  if ! command -v brew >/dev/null 2>&1; then
+    print_error "Homebrew is required on macOS but was not found. Install it from https://brew.sh"
+    return 1
+  fi
+}
+
 install_dependencies_spank_mobile() {
   local os; os=$(get_os)
+
+  if [[ "$os" == "mac" ]]; then
+    _spank_require_brew || return 1
+  fi
 
   # git
   if _spank_need git; then
