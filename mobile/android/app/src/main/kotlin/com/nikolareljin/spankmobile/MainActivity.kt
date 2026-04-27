@@ -319,16 +319,16 @@ class MainActivity : FlutterActivity() {
         player.setVolume(volume, volume)
         player.setOnCompletionListener {
             it.release()
-            restoreAudioRouting()
             if (mediaPlayer === it) {
                 mediaPlayer = null
+                restoreAudioRouting()
             }
         }
         player.setOnErrorListener { mp, _, _ ->
-            restoreAudioRouting()
             mp.release()
             if (mediaPlayer === mp) {
                 mediaPlayer = null
+                restoreAudioRouting()
             }
             true
         }
