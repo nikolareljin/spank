@@ -38,8 +38,8 @@ class MainActivity : FlutterActivity() {
     private var preSpeakerphoneState: Boolean? = null
     // Legacy (< API 31): the value we forced so we can skip restore if the user changed it.
     private var forcedSpeakerphoneState: Boolean? = null
-    // API 31+: true when setCommunicationDevice was called and clearCommunicationDevice is needed.
-    private var communicationDeviceActive: Boolean = false
+    // API 31+: the device we passed to setCommunicationDevice; null when idle.
+    private var appliedCommunicationDevice: AudioDeviceInfo? = null
     private var pendingServiceResult: MethodChannel.Result? = null
     private var serviceRequested: Boolean = false
 
@@ -226,8 +226,8 @@ class MainActivity : FlutterActivity() {
                 AudioDeviceInfo.TYPE_BUILTIN_EARPIECE
             val device = audioManager.availableCommunicationDevices
                 .firstOrNull { it.type == targetType }
-            if (device != null) {
-                communicationDeviceActive = audioManager.setCommunicationDevice(device)
+            if (device != null && audioManager.setCommunicationDevice(device)) {
+                appliedCommunicationDevice = device
             }
         } else {
             val forced = audioMode == "shared"
@@ -240,9 +240,12 @@ class MainActivity : FlutterActivity() {
 
     private fun restoreAudioRouting() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (communicationDeviceActive) {
-                audioManager.clearCommunicationDevice()
-                communicationDeviceActive = false
+            val applied = appliedCommunicationDevice
+            if (applied != null) {
+                if (audioManager.communicationDevice == applied) {
+                    audioManager.clearCommunicationDevice()
+                }
+                appliedCommunicationDevice = null
             }
         } else {
             val pre = preSpeakerphoneState

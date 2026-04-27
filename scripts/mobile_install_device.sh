@@ -37,8 +37,37 @@ _sdk_dir() {
   echo "$HOME/Android/Sdk"
 }
 
+_version_ge() {
+  local IFS=.
+  local -a l r
+  read -r -a l <<< "$1"
+  read -r -a r <<< "$2"
+  local i
+  for ((i = 0; i < ${#l[@]} || i < ${#r[@]}; i++)); do
+    local lv=${l[i]:-0} rv=${r[i]:-0}
+    ((10#$lv > 10#$rv)) && return 0
+    ((10#$lv < 10#$rv)) && return 1
+  done
+  return 0
+}
+
+_latest_aapt() {
+  local sdk_dir="$1" best_ver="" best_aapt="" dir version candidate
+  for dir in "$sdk_dir"/build-tools/*/; do
+    [[ -d "$dir" ]] || continue
+    candidate="${dir}aapt"
+    [[ -f "$candidate" ]] || continue
+    version=$(basename "$dir")
+    if [[ -z "$best_ver" ]] || _version_ge "$version" "$best_ver"; then
+      best_ver="$version"
+      best_aapt="$candidate"
+    fi
+  done
+  [[ -n "$best_aapt" ]] && echo "$best_aapt"
+}
+
 SDK_DIR=$(_sdk_dir)
-AAPT=$(find "$SDK_DIR/build-tools" -name "aapt" 2>/dev/null | sort -V | tail -1)
+AAPT=$(_latest_aapt "$SDK_DIR")
 
 # Read the actual minSdk from the built APK — never hardcode a value that drifts with Flutter upgrades.
 if [[ -n "$AAPT" ]]; then

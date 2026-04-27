@@ -3,7 +3,11 @@
 # Sourceable: when sourced, exposes install_dependencies_spank_mobile().
 # When executed directly, installs all deps immediately.
 # Safe to run repeatedly — skips tools that are already present.
-set -euo pipefail
+
+# Only enable strict mode when executed directly; callers control their own shell options.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  set -euo pipefail
+fi
 
 # shellcheck source=./common.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
