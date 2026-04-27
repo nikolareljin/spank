@@ -158,7 +158,7 @@ Android 13+ will prompt for notification permission the first time Call Mode is 
   - Confirm USB debugging is enabled.
   - If sideloading an APK, allow installs from unknown sources on the device.
 - Call Mode notification does not appear:
-  - Grant notification permission in device Settings → Apps → Spank → Notifications.
+  - Grant notification permission in device Settings → Apps → Spank Mobile → Notifications.
   - Without the permission (Android 13+) the foreground service cannot start; monitoring remains foreground-only.
 - Call Mode armed but monitoring stops when backgrounded:
   - The foreground service may have failed to start (check the in-app error banner).
