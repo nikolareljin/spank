@@ -9,7 +9,7 @@ mkdir -p "$GOCACHE"
 
 if [[ ! -f "$SCRIPT_HELPERS_DIR/helpers.sh" ]]; then
   echo "script-helpers is missing. Run: git submodule update --init --recursive" >&2
-  exit 1
+  return 1 2>/dev/null || exit 1
 fi
 
 # shellcheck source=/dev/null
