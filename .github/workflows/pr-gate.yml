@@ -1,0 +1,65 @@
+name: PR Gate
+
+on:
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+      mobile: ${{ steps.filter.outputs.mobile }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+              - 'scripts/**'
+              - '.github/workflows/**'
+              - '.gitmodules'
+            mobile:
+              - 'mobile/**'
+              - '**/*.dart'
+              - '**/pubspec.yaml'
+              - '**/build.gradle'
+              - '**/build.gradle.kts'
+              - 'scripts/**'
+              - '.github/workflows/**'
+              - '.gitmodules'
+
+  go:
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
+    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@production
+    with:
+      go_version: "1.22.2"
+      working_directory: "."
+      lint_command: "./scripts/update_submodules.sh && ./scripts/lint.sh"
+      test_command: "./scripts/update_submodules.sh && ./scripts/test.sh"
+      build_command: ""
+
+  mobile:
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@production
+    with:
+      java_version: "17"
+      flutter_version: "3.38.7"
+      flutter_channel: "stable"
+      working_directory: "."
+      lint_command: "./scripts/update_submodules.sh && ./scripts/mobile_lint.sh"
+      test_command: "./scripts/update_submodules.sh && ./scripts/mobile_test.sh"
+      build_command: ""
