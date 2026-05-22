@@ -27,12 +27,18 @@ jobs:
               - '**/*.go'
               - 'go.mod'
               - 'go.sum'
+              - 'scripts/**'
+              - '.github/workflows/**'
+              - '.gitmodules'
             mobile:
               - 'mobile/**'
               - '**/*.dart'
               - '**/pubspec.yaml'
               - '**/build.gradle'
               - '**/build.gradle.kts'
+              - 'scripts/**'
+              - '.github/workflows/**'
+              - '.gitmodules'
 
   go:
     needs: changes
@@ -42,7 +48,7 @@ jobs:
       go_version: "1.22.2"
       working_directory: "."
       lint_command: "./scripts/update_submodules.sh && ./scripts/lint.sh"
-      test_command: "./scripts/update_submodules.sh && go test ./..."
+      test_command: "./scripts/update_submodules.sh && ./scripts/test.sh"
       build_command: ""
 
   mobile:
