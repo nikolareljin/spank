@@ -4,29 +4,56 @@ on:
   pull_request:
     paths-ignore:
       - "docs/**"
-      - "*.md"
+      - "**/*.md"
 
 concurrency:
   group: pr-gate-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+      mobile: ${{ steps.filter.outputs.mobile }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+            mobile:
+              - 'mobile/**'
+              - '**/*.dart'
+              - '**/pubspec.yaml'
+              - '**/build.gradle'
+              - '**/build.gradle.kts'
+
   go:
-    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@production
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
+    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@b5c8ac82ce3ce84f30ca3aa389c9075075dcab6a
     with:
       go_version: "1.22.2"
       working_directory: "."
-      lint_command: "./scripts/update_submodules.sh && go vet ./..."
-      test_command: "go test ./..."
+      lint_command: "./scripts/update_submodules.sh && ./scripts/lint.sh"
+      test_command: "./scripts/update_submodules.sh && go test ./..."
       build_command: ""
 
   mobile:
-    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@production
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@b5c8ac82ce3ce84f30ca3aa389c9075075dcab6a
     with:
       java_version: "17"
       flutter_version: "3.38.7"
       flutter_channel: "stable"
       working_directory: "."
       lint_command: "./scripts/update_submodules.sh && ./scripts/mobile_lint.sh"
-      test_command: "./scripts/mobile_test.sh"
+      test_command: "./scripts/update_submodules.sh && ./scripts/mobile_test.sh"
       build_command: ""
