@@ -1,0 +1,32 @@
+name: PR Gate
+
+on:
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@production
+    with:
+      go_version: "1.22.2"
+      working_directory: "."
+      lint_command: "./scripts/update_submodules.sh && go vet ./..."
+      test_command: "go test ./..."
+      build_command: ""
+
+  mobile:
+    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@production
+    with:
+      java_version: "17"
+      flutter_version: "3.38.7"
+      flutter_channel: "stable"
+      working_directory: "."
+      lint_command: "./scripts/update_submodules.sh && ./scripts/mobile_lint.sh"
+      test_command: "./scripts/mobile_test.sh"
+      build_command: ""
