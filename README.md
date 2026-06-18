@@ -159,3 +159,11 @@ go test ./...
 go build ./cmd/spank
 cd mobile && flutter test
 ```
+
+---
+
+## Clone traffic
+
+![Clone traffic](https://raw.githubusercontent.com/nikolareljin/stats/main/charts/spank.svg)
+
+_Updated daily. Total and unique cloners over the last 14 days._
