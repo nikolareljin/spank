@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# dev — uniform mobile CLI entry point (same in every game repo): ./dev <command> [args]
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/scripts/cli.sh" "$@"

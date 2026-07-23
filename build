@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# build — literal shortcut for './dev build'. See scripts/cli.sh for the shared params.
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/scripts/cli.sh" build "$@"
