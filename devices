@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# devices — literal shortcut for './dev devices'. See scripts/cli.sh for the shared params.
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/scripts/cli.sh" devices "$@"
