@@ -102,8 +102,15 @@ case "$cmd" in
     ;;
   deploy)
     require_android
-    bash scripts/mobile_build_debug_apk.sh
-    exec bash scripts/mobile_install_device.sh "${EXTRA[@]}"
+    if [[ "$RELEASE" == 1 ]]; then
+      echo "--release is not supported for 'deploy' in this repo (mobile_install_device.sh installs a debug APK)." >&2
+      exit 2
+    fi
+    if [[ -n "$DEVICE" ]]; then
+      exec env ANDROID_SERIAL="$DEVICE" bash scripts/mobile_install_device.sh "${EXTRA[@]}"
+    else
+      exec bash scripts/mobile_install_device.sh "${EXTRA[@]}"
+    fi
     ;;
   devices)
     cd "$MOBILE_DIR"
