@@ -1,0 +1,46 @@
+# fastlane lanes for the spank mobile app.
+#
+# Design notes:
+#   - iOS signing uses `match` (certs/profiles synced from a private repo via
+#     MATCH_GIT_URL). No certificates or team ids live in this repo.
+#   - Default deploy targets are the pre-release channels (TestFlight for iOS,
+#     the Play "internal" track for Android) — safe until the listings go live.
+#     Switch `upload_to_testflight` -> `upload_to_app_store` and the Play track
+#     to "production" when you are ready to submit for review.
+#   - All store credentials are read from the environment at runtime.
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build a signed iOS release and upload to TestFlight"
+  lane :ios_release do
+    setup_ci if ENV["CI"]
+    match(type: "appstore", readonly: (ENV["MATCH_READONLY"] != "false")) if ENV["MATCH_GIT_URL"]
+
+    build_app(
+      workspace: "ios/Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store"
+    )
+
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+end
+
+platform :android do
+  desc "Build a signed Android App Bundle and upload to the Play internal track"
+  lane :android_release do
+    sh("cd .. && flutter build appbundle --release")
+
+    upload_to_play_store(
+      track: "internal",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      json_key: ENV["GOOGLE_PLAY_JSON_KEY_PATH"] || "google-play.json",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end
