@@ -54,6 +54,24 @@ If auto-detection picks the wrong device:
 ./spank run --sensor /sys/bus/iio/devices/iio:device0
 ```
 
+## Commands (unified CLI)
+
+The mobile app (Flutter in `./mobile`) uses the shared command surface common to all the game
+repos (time-loop-ar, lexiweave, bloombounce-orchard, spank) — same names + params everywhere. Use
+the uniform `./dev <command>` entry point, or the literal shortcuts:
+
+```
+./dev install     # or ./install   — mobile deps + toolchain
+./dev build       # or ./build [--release]   — APK
+./dev run         # or ./run   [--device <id>] [--release]
+./dev test        # or ./test
+./dev deploy      # or ./deploy [--device <id>]   — build + install on a device
+./dev devices     # or ./devices
+./dev clean       # or ./clean
+```
+
+Shared options: positional `target` (`android`; ios/linux not supported by the mobile scripts), `--device <id>` (run/deploy), `--release` (build/run), `-h/--help`. These are thin wrappers over `scripts/mobile_*`.
+
 ## Mobile quick start
 
 ```bash
