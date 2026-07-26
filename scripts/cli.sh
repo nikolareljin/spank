@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# cli.sh — unified mobile CLI dispatcher.
+# cli.sh — unified CLI dispatcher for spank.
 #
-# Invoked as `./dev <command> [args]` (uniform across every game repo) and by the
-# literal shortcut commands. It normalizes a SHARED argument surface and delegates
-# to this repo's existing scripts/* (the Flutter mobile app lives in ./mobile).
-# Same command names + params across time-loop-ar, lexiweave, bloombounce-orchard
-# and spank; only this delegation map differs (here: spank mobile / Flutter).
+# Invoked as `./dev <command> [args]` and by the literal shortcut commands
+# (./install ./update ./build ./run ./test ./deploy ./devices ./clean). It
+# normalizes a shared argument surface and delegates to this repo's scripts/*.
+# The Flutter mobile app lives in ./mobile; the Go CLI lives in ./cmd/spank.
 #
 # Shared params (every command):
 #   [target]        android | ios | linux   (default: android)
 #   --device <id>   target a specific device
 #   --release       release build/run
 #   -h, --help      show help
+#
+# iOS targets require macOS with Xcode (Apple's toolchain does not run on
+# Linux/Windows) and fail fast with a clear message elsewhere.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
@@ -24,26 +26,31 @@ cmd="${1:-}"
 
 usage() {
   cat <<EOF
-Unified CLI — Spank (mobile app: Flutter in ./mobile)
+Unified CLI — Spank (Flutter mobile app in ./mobile + Go CLI in ./cmd/spank)
 
 Usage:
-  ./dev <command> [target] [options]     # uniform entry (works in every game repo)
-  ./install ./build ./run ./test ./deploy ./devices ./clean [options]   # literal shortcuts
+  ./dev <command> [target] [options]
+  ./install ./update ./build ./run ./test ./deploy ./devices ./clean [options]
 
 Commands:
-  install            Install mobile deps + toolchain   (scripts/mobile_install_deps.sh)
-  build   [android]  Build the APK                      (scripts/mobile_build_*_apk.sh)
-  run     [android]  Run on a device/emulator           (flutter run in ./mobile)
-  test               Run the mobile test suite          (scripts/mobile_test.sh)
-  deploy  [android]  Build + install on a device        (build + scripts/mobile_install_device.sh)
-  devices            List connected devices/emulators   (flutter devices)
-  clean              Clean build outputs                (flutter clean in ./mobile)
+  install            Install mobile deps + toolchain    (scripts/mobile_install_deps.sh)
+  update             Sync git submodules                 (scripts/update_submodules.sh)
+  build   [target]   Build the app artifact              (APK/IPA for mobile; binary for linux)
+  run     [target]   Run on a device/emulator/host       (flutter run; or the Go CLI for linux)
+  test    [target]   Run the test suite                  (flutter test; or 'go test' for linux)
+  deploy  [target]   Build + install on a device         (android/ios)
+  devices            List connected devices/emulators    (flutter devices)
+  clean              Clean build outputs                 (flutter clean)
 
 Options (shared):
-  target             android (default). ios/linux are not supported by the mobile scripts.
+  target             android (default) | ios | linux    (alias: iphone -> ios)
   --device <id>      target a specific device
-  --release          release build/run (build/run)
+  --release          release build/run
   -h, --help         show this help
+
+Notes:
+  - iOS (build/run/deploy ios) requires macOS with Xcode; it fails fast on Linux/Windows.
+  - linux targets the Go CLI (go build / go test / go run ./cmd/spank).
 EOF
 }
 
@@ -60,6 +67,7 @@ declare -a EXTRA=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     android | ios | linux) TARGET="$1"; shift ;;
+    iphone) TARGET="ios"; shift ;;            # legacy alias -> canonical 'ios'
     --device) DEVICE="${2:?--device needs an id}"; shift 2 ;;
     --release) RELEASE=1; shift ;;
     -h | --help) usage; exit 0 ;;
@@ -69,48 +77,91 @@ done
 
 target="${TARGET:-android}"
 
-require_android() {
-  [[ "$target" == android ]] && return 0
-  echo "spank mobile only supports the 'android' target for '$cmd' (got '$target')." >&2
-  exit 2
+# macOS-only guard for iOS targets. Uses OSTYPE so the dispatcher stays dependency-free.
+require_macos() {
+  case "$OSTYPE" in
+    darwin*) return 0 ;;
+  esac
+  echo "Target '$target' requires macOS with Xcode (Apple's toolchain does not run here)." >&2
+  echo "Build/run/deploy iOS on a Mac, or use a macOS runner in CI." >&2
+  exit 3
 }
 
 cd "$ROOT_DIR"
 
-# --- delegation map (spank mobile / Flutter) --------------------------------
+# --- delegation map ---------------------------------------------------------
 case "$cmd" in
   install)
     exec bash scripts/mobile_install_deps.sh "${EXTRA[@]}"
     ;;
+  update)
+    exec bash scripts/update_submodules.sh "${EXTRA[@]}"
+    ;;
   build)
-    require_android
-    if [[ "$RELEASE" == 1 ]]; then
-      exec bash scripts/mobile_build_release_apk.sh "${EXTRA[@]}"
-    else
-      exec bash scripts/mobile_build_debug_apk.sh "${EXTRA[@]}"
-    fi
+    case "$target" in
+      android)
+        if [[ "$RELEASE" == 1 ]]; then
+          exec bash scripts/mobile_build_release_apk.sh "${EXTRA[@]}"
+        else
+          exec bash scripts/mobile_build_debug_apk.sh "${EXTRA[@]}"
+        fi
+        ;;
+      ios)
+        require_macos
+        exec bash scripts/mobile_build_ipa.sh "${EXTRA[@]}"
+        ;;
+      linux)
+        exec bash scripts/build.sh "${EXTRA[@]}"
+        ;;
+    esac
     ;;
   run)
-    cd "$MOBILE_DIR"
-    args=()
-    [[ -n "$DEVICE" ]] && args+=(-d "$DEVICE")
-    [[ "$RELEASE" == 1 ]] && args+=(--release)
-    exec flutter run "${args[@]}" "${EXTRA[@]}"
+    case "$target" in
+      android | ios)
+        [[ "$target" == ios ]] && require_macos
+        cd "$MOBILE_DIR"
+        args=()
+        [[ -n "$DEVICE" ]] && args+=(-d "$DEVICE")
+        [[ "$RELEASE" == 1 ]] && args+=(--release)
+        exec flutter run "${args[@]}" "${EXTRA[@]}"
+        ;;
+      linux)
+        exec go run ./cmd/spank "${EXTRA[@]}"
+        ;;
+    esac
     ;;
   test)
-    exec bash scripts/mobile_test.sh "${EXTRA[@]}"
+    case "$target" in
+      android | ios) exec bash scripts/mobile_test.sh "${EXTRA[@]}" ;;
+      linux)         exec bash scripts/test.sh "${EXTRA[@]}" ;;
+    esac
     ;;
   deploy)
-    require_android
-    if [[ "$RELEASE" == 1 ]]; then
-      echo "--release is not supported for 'deploy' in this repo (mobile_install_device.sh installs a debug APK)." >&2
-      exit 2
-    fi
-    if [[ -n "$DEVICE" ]]; then
-      exec env ANDROID_SERIAL="$DEVICE" bash scripts/mobile_install_device.sh "${EXTRA[@]}"
-    else
-      exec bash scripts/mobile_install_device.sh "${EXTRA[@]}"
-    fi
+    case "$target" in
+      android)
+        if [[ "$RELEASE" == 1 ]]; then
+          echo "--release is not supported for 'deploy android' (mobile_install_device.sh installs a debug APK)." >&2
+          exit 2
+        fi
+        if [[ -n "$DEVICE" ]]; then
+          exec env ANDROID_SERIAL="$DEVICE" bash scripts/mobile_install_device.sh "${EXTRA[@]}"
+        else
+          exec bash scripts/mobile_install_device.sh "${EXTRA[@]}"
+        fi
+        ;;
+      ios)
+        require_macos
+        if [[ -n "$DEVICE" ]]; then
+          exec env FLUTTER_DEVICE="$DEVICE" bash scripts/mobile_install_device_ios.sh "${EXTRA[@]}"
+        else
+          exec bash scripts/mobile_install_device_ios.sh "${EXTRA[@]}"
+        fi
+        ;;
+      linux)
+        echo "'deploy' is for mobile devices. For the Go CLI use './dev build linux' then run dist/spank, or package via CI." >&2
+        exit 2
+        ;;
+    esac
     ;;
   devices)
     cd "$MOBILE_DIR"
