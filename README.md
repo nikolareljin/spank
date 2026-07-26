@@ -70,8 +70,7 @@ the uniform `./dev <command>` entry point, or the literal shortcuts:
 ./dev clean       # or ./clean
 ```
 
-Shared options: positional `target` (`android`; ios/linux not supported by the mobile scripts),
-`--device <id>`, `--release`, `-h/--help`. These are thin wrappers over `scripts/mobile_*`.
+Shared options: positional `target` (`android`; ios/linux not supported by the mobile scripts), `--device <id>` (run/deploy), `--release` (build/run), `-h/--help`. These are thin wrappers over `scripts/mobile_*`.
 
 ## Mobile quick start
 
