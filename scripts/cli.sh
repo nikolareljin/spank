@@ -42,7 +42,7 @@ Commands:
 Options (shared):
   target             android (default). ios/linux are not supported by the mobile scripts.
   --device <id>      target a specific device
-  --release          release build (build/deploy)
+  --release          release build/run (build/run)
   -h, --help         show this help
 EOF
 }
