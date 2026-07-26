@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# clean — literal shortcut for './dev clean'. See scripts/cli.sh for the shared params.
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/scripts/cli.sh" clean "$@"
