@@ -26,9 +26,9 @@ if [[ -f "$EXPORT_OPTS" ]]; then
   flutter build ipa --release --export-options-plist "$EXPORT_OPTS"
   print_success "IPA built under build/ios/ipa/."
 else
-  print_warning "No ios/ExportOptions.plist found — producing an UNSIGNED archive only."
+  print_warning "No ios/ExportOptions.plist found — building an UNSIGNED app (no .ipa is produced)."
   print_warning "For a distributable IPA: sign via 'fastlane ios ios_release', or copy"
   print_warning "ios/ExportOptions.plist.example to ios/ExportOptions.plist and set your team id."
   flutter build ios --release --no-codesign
-  print_success "Unsigned iOS build complete (not exportable to the App Store as-is)."
+  print_success "Unsigned iOS app build complete (no exportable IPA)."
 fi

@@ -21,9 +21,13 @@ flutter pub get
 
 # Target device: FLUTTER_DEVICE is set by cli.sh when --device <id> is passed;
 # otherwise flutter picks the sole attached iOS device (and errors if ambiguous).
+# SPANK_IOS_RELEASE=1 (set by cli.sh on --release) installs a release build.
 install_args=()
 if [[ -n "${FLUTTER_DEVICE:-}" ]]; then
   install_args+=(-d "$FLUTTER_DEVICE")
+fi
+if [[ "${SPANK_IOS_RELEASE:-0}" == "1" ]]; then
+  install_args+=(--release)
 fi
 
 log_info "Building and installing on iPhone via 'flutter install'..."

@@ -40,7 +40,7 @@ Commands:
   test    [target]   Run the test suite                  (flutter test; or 'go test' for linux)
   deploy  [target]   Build + install on a device         (android/ios)
   devices            List connected devices/emulators    (flutter devices)
-  clean              Clean build outputs                 (flutter clean)
+  clean   [target]   Clean build outputs                 (flutter clean; go clean for linux)
 
 Options (shared):
   target             android (default) | ios | linux    (alias: iphone -> ios)
@@ -151,11 +151,10 @@ case "$cmd" in
         ;;
       ios)
         require_macos
-        if [[ -n "$DEVICE" ]]; then
-          exec env FLUTTER_DEVICE="$DEVICE" bash scripts/mobile_install_device_ios.sh "${EXTRA[@]}"
-        else
-          exec bash scripts/mobile_install_device_ios.sh "${EXTRA[@]}"
-        fi
+        env_vars=()
+        [[ -n "$DEVICE" ]] && env_vars+=("FLUTTER_DEVICE=$DEVICE")
+        [[ "$RELEASE" == 1 ]] && env_vars+=("SPANK_IOS_RELEASE=1")
+        exec env "${env_vars[@]}" bash scripts/mobile_install_device_ios.sh "${EXTRA[@]}"
         ;;
       linux)
         echo "'deploy' is for mobile devices. For the Go CLI use './dev build linux' then run dist/spank, or package via CI." >&2
@@ -164,12 +163,26 @@ case "$cmd" in
     esac
     ;;
   devices)
+    if [[ "$target" == linux ]]; then
+      echo "The 'linux' (Go CLI) target has no devices; use './dev run linux'." >&2
+      exit 0
+    fi
+    # flutter devices lists all attached mobile devices and needs no iOS toolchain
+    # (on Linux it simply won't show iOS devices), so no macOS guard is applied.
     cd "$MOBILE_DIR"
     exec flutter devices "${EXTRA[@]}"
     ;;
   clean)
-    cd "$MOBILE_DIR"
-    exec flutter clean
+    case "$target" in
+      linux)
+        rm -rf "$ROOT_DIR/dist"
+        exec go clean ./...
+        ;;
+      *)
+        cd "$MOBILE_DIR"
+        exec flutter clean
+        ;;
+    esac
     ;;
   *)
     echo "Unknown command: $cmd" >&2
