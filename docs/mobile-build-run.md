@@ -34,7 +34,7 @@ Examples:
 ```bash
 ./build android --release      # release APK
 ./deploy android --device XYZ  # install debug APK on a connected Android
-./build ios                    # signed IPA (on macOS; see below)
+./build ios                    # signed IPA if signing is configured, else an unsigned app (macOS; see below)
 ./deploy ios                   # install on a connected iPhone (on macOS)
 ./build linux                  # go build -> dist/spank
 ./test linux                   # go test ./...
