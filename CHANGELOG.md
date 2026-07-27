@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Updated the `scripts/script-helpers` submodule to `0.19.0`, which adds the `ios`
+  helper module (device/simulator toolkit) alongside the existing helpers.
 - Added iOS support to the unified CLI: `./build ios`, `./run ios`, `./deploy ios` (alias `iphone`),
   which fail fast with a clear message on non-macOS hosts.
 - Added `scripts/mobile_build_ipa.sh` (build a release IPA) and `scripts/mobile_install_device_ios.sh`
