@@ -43,3 +43,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# iOS signing — never commit the real export options (carries the team id) or any keys
+/ios/ExportOptions.plist
+*.p8
+*.p12
+*.mobileprovision
+*.cer
+
+# fastlane build/report output (keep Appfile/Matchfile/Fastfile tracked)
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/README.md
+**/google-play*.json

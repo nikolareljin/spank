@@ -1,0 +1,8 @@
+# fastlane match — iOS signing certificates & provisioning profiles.
+# The storage repo URL and passphrase are supplied via the environment
+# (MATCH_GIT_URL, MATCH_PASSWORD); nothing sensitive is committed here.
+git_url(ENV["MATCH_GIT_URL"]) if ENV["MATCH_GIT_URL"]
+storage_mode("git")
+type("appstore")
+app_identifier([ENV["APP_IDENTIFIER"] || "com.nikolareljin.spankmobile"])
+readonly(ENV["MATCH_READONLY"] != "false")

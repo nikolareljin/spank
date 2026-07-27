@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+- Added a new app launcher icon: a cartoon "slap" (a hand smacking a dazed phone) that
+  fits the tap/slap-detector theme. Source art is `mobile/assets/branding/spank_icon.svg`
+  (rasterized via the script-helpers `svg` module); Android + iOS launcher icons are
+  generated with `flutter_launcher_icons` (`dart run flutter_launcher_icons` to regenerate).
+- Updated the `scripts/script-helpers` submodule to `0.19.0`, which adds the `ios`
+  helper module (device/simulator toolkit) alongside the existing helpers.
+- Added iOS support to the unified CLI: `./build ios`, `./run ios`, `./deploy ios` (alias `iphone`),
+  which fail fast with a clear message on non-macOS hosts.
+- Added `scripts/mobile_build_ipa.sh` (build a release IPA) and `scripts/mobile_install_device_ios.sh`
+  (install on a connected iPhone), mirroring the Android device scripts. Both require macOS + Xcode.
+- Added a `linux` CLI target that drives the Go CLI: `./build linux` (go build), `./test linux`
+  (go test), `./run linux` (go run ./cmd/spank).
+- Added the `update` command/shortcut for syncing git submodules.
+- Added fastlane lanes (`mobile/fastlane/`) for iOS (match-based signing → TestFlight) and Android
+  (App Bundle → Play internal track); signing material is supplied via the environment only.
+- Added `ios/ExportOptions.plist.example`; the real `ios/ExportOptions.plist` and signing keys are
+  gitignored.
+- Added the manual `mobile-store-release` workflow to build the Android AAB + iOS IPA on a macOS
+  runner and optionally deploy to the stores.
+
 ## [0.3.0] - 2026-04-26
 
 - Added Android background **Call Mode**: a foreground service keeps monitoring active when the app is backgrounded during a call.

@@ -1,0 +1,62 @@
+name: mobile-store-release
+
+# Opt-in store release for the Flutter app (Android AAB + iOS IPA) on a macOS runner.
+# Manual only — it never runs automatically. Build works today; store deploys stay
+# off until the store accounts + repo secrets exist:
+#   Android: ANDROID_KEYSTORE_BASE64 / _PASSWORD / _KEY_ALIAS / _KEY_PASSWORD,
+#            GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+#   iOS:     APP_STORE_CONNECT_API_KEY_BASE64 / _KEY_ID / _ISSUER_ID  (+ match secrets)
+# Signed iOS deploy also requires the ci-helpers flutter-release match support.
+# Secrets are mapped explicitly below (least privilege) — only the ones the
+# reusable workflow declares are forwarded, and each is optional/unset until it
+# exists in the repo.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_android:
+        description: Build the Android App Bundle
+        type: boolean
+        default: true
+      build_ios:
+        description: Build the iOS IPA
+        type: boolean
+        default: true
+      deploy_google_play:
+        description: Upload the AAB to Google Play (internal track)
+        type: boolean
+        default: false
+      deploy_app_store:
+        description: Upload the IPA to TestFlight / App Store
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    uses: nikolareljin/ci-helpers/.github/workflows/flutter-release.yml@production
+    with:
+      runner: macos-latest
+      working_directory: "mobile"
+      flutter_version: "3.38.7"
+      flutter_channel: "stable"
+      java_version: "17"
+      build_android: ${{ inputs.build_android }}
+      build_ios: ${{ inputs.build_ios }}
+      deploy_google_play: ${{ inputs.deploy_google_play }}
+      deploy_app_store: ${{ inputs.deploy_app_store }}
+      fastlane_android_lane: "android_release"
+      fastlane_ios_lane: "ios_release"
+      android_artifact_name: "spank-android-aab"
+      ios_artifact_name: "spank-ios-ipa"
+    secrets:
+      android_keystore_base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      android_keystore_password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      android_key_alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+      android_key_password: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      google_play_service_account_json: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+      app_store_connect_api_key_base64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      app_store_connect_key_id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      app_store_connect_issuer_id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      match_git_url: ${{ secrets.MATCH_GIT_URL }}
+      match_password: ${{ secrets.MATCH_PASSWORD }}
+      match_git_basic_authorization: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}

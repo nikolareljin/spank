@@ -1,0 +1,8 @@
+# fastlane Appfile — identifiers only. Team, Apple ID, and store credentials
+# come from the environment / App Store Connect API key at deploy time; never
+# hardcode them here.
+app_identifier(ENV["APP_IDENTIFIER"] || "com.nikolareljin.spankmobile")
+
+for_platform :android do
+  package_name(ENV["APP_IDENTIFIER"] || "com.nikolareljin.spankmobile")
+end

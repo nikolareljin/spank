@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Spank app icon — a cartoon slap</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF7AA2"/>
+      <stop offset="1" stop-color="#E63462"/>
+    </linearGradient>
+    <radialGradient id="pop" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFF6C8"/>
+      <stop offset="0.6" stop-color="#FFD84D"/>
+      <stop offset="1" stop-color="#FBB03B"/>
+    </radialGradient>
+  </defs>
+
+  <!-- full-bleed background (each OS masks its own rounded shape) -->
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- motion swooshes behind the hand -->
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" opacity="0.55">
+    <path d="M150 470 q120 -70 250 -55" stroke-width="26"/>
+    <path d="M140 560 q150 -60 300 -40" stroke-width="20"/>
+    <path d="M165 640 q140 -40 260 -20" stroke-width="16"/>
+  </g>
+
+  <!-- impact star burst -->
+  <g transform="translate(602 452)">
+    <path fill="url(#pop)" stroke="#C1121F" stroke-width="10" stroke-linejoin="round"
+      d="M0,-180 34,-70 150,-96 74,-6 190,44 68,52 108,168 6,96 -60,190 -60,66 -184,84 -86,4 -170,-96 -46,-70 -66,-186 6,-84 Z"/>
+    <!-- dazed phone getting smacked -->
+    <g transform="rotate(16)">
+      <rect x="-70" y="-108" width="140" height="216" rx="26" fill="#2B2D42"/>
+      <rect x="-52" y="-88" width="104" height="176" rx="12" fill="#EDF2F4"/>
+      <!-- spiral X eyes -->
+      <g stroke="#2B2D42" stroke-width="9" stroke-linecap="round" fill="none">
+        <path d="M-34,-44 l24,24 M-10,-44 l-24,24"/>
+        <path d="M10,-44 l24,24 M34,-44 l-24,24"/>
+      </g>
+      <!-- woozy tongue-out mouth -->
+      <path d="M-26,10 q26,34 52,0" stroke="#E63462" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <ellipse cx="8" cy="30" rx="16" ry="20" fill="#FF5D8F"/>
+    </g>
+  </g>
+
+  <!-- the slapping hand -->
+  <g transform="translate(300 610) rotate(-24)">
+    <!-- palm -->
+    <path fill="#F4B183" stroke="#8A4B2A" stroke-width="12" stroke-linejoin="round"
+      d="M-120,40 q-20,-150 40,-190 q30,-20 40,20 l10,120 q40,-20 60,10 q40,-6 55,26 q40,10 30,60 q22,60 -30,110 q-70,70 -170,30 q-55,-24 -35,-116 Z"/>
+    <!-- fingers -->
+    <g fill="#F4B183" stroke="#8A4B2A" stroke-width="12" stroke-linejoin="round">
+      <rect x="-118" y="-176" width="52" height="150" rx="26"/>
+      <rect x="-60" y="-196" width="52" height="170" rx="26"/>
+      <rect x="-2" y="-190" width="52" height="164" rx="26"/>
+      <rect x="54" y="-168" width="52" height="140" rx="26"/>
+    </g>
+    <!-- thumb -->
+    <path fill="#F4B183" stroke="#8A4B2A" stroke-width="12" stroke-linejoin="round"
+      d="M120,10 q70,-30 96,26 q22,50 -40,66 q-46,10 -70,-30 Z"/>
+  </g>
+
+  <!-- little sparkles -->
+  <g fill="#FFFFFF">
+    <path d="M792 250 l14 34 34 14 -34 14 -14 34 -14 -34 -34 -14 34 -14 Z"/>
+    <path d="M262 300 l10 24 24 10 -24 10 -10 24 -10 -24 -24 -10 24 -10 Z"/>
+    <path d="M840 690 l10 24 24 10 -24 10 -10 24 -10 -24 -24 -10 24 -10 Z"/>
+  </g>
+</svg>
