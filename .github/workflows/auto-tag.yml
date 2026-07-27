@@ -9,6 +9,12 @@ on:
 permissions:
   contents: write
   pull-requests: read
+  # Required by the called auto-tag-release.yml: its 'dispatch' job declares
+  # actions: write, and GitHub validates a reusable workflow's declared
+  # permissions at startup even though that job is gated off here (we never set
+  # release_workflow). Without this the run fails with "requesting 'actions:
+  # write', but is only allowed 'actions: none'".
+  actions: write
 
 jobs:
   tag:
