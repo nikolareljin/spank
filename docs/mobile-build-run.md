@@ -14,6 +14,32 @@ The mobile app reuses the same detector behavior as the Go version:
 
 Use it to turn older phones into dedicated tap or slap triggered sound devices.
 
+## Unified CLI
+
+All build/run/test/deploy tasks share one command surface, from the repo root:
+
+```bash
+./dev <command> [target] [options]
+# or the literal shortcuts:
+./install ./update ./build ./run ./test ./deploy ./devices ./clean
+```
+
+- `target` = `android` (default) `| ios | linux` (`iphone` is accepted as an alias of `ios`).
+- `--device <id>` targets a specific device; `--release` selects a release build/run.
+- `android`/`ios` drive the Flutter app in `./mobile`; `linux` drives the Go CLI in `./cmd/spank`.
+- iOS targets require macOS with Xcode and fail fast with a clear message on Linux/Windows.
+
+Examples:
+
+```bash
+./build android --release      # release APK
+./deploy android --device XYZ  # install debug APK on a connected Android
+./build ios                    # signed IPA if signing is configured, else an unsigned app (macOS; see below)
+./deploy ios                   # install on a connected iPhone (on macOS)
+./build linux                  # go build -> dist/spank
+./test linux                   # go test ./...
+```
+
 ## Requirements
 
 - Flutter SDK installed and on `PATH`
@@ -111,8 +137,29 @@ flutter run -d ios
 7. Build an iOS release artifact:
 
 ```bash
+./build ios          # -> scripts/mobile_build_ipa.sh (uses ios/ExportOptions.plist if present)
+# or directly:
 flutter build ios --release
 ```
+
+### Signing (fastlane match)
+
+Signing is automated with [`fastlane match`](https://docs.fastlane.tools/actions/match/), which
+syncs certificates and provisioning profiles from a private storage repo. Nothing sensitive is
+committed to this repo:
+
+- The match storage URL and passphrase come from the environment (`MATCH_GIT_URL`, `MATCH_PASSWORD`).
+- For a manual signed export, copy `ios/ExportOptions.plist.example` to `ios/ExportOptions.plist`
+  and set your team id (the real file is gitignored).
+- Lanes live in `mobile/fastlane/Fastfile`:
+  - `fastlane ios ios_release` — match → build → upload to TestFlight.
+  - `fastlane android android_release` — build App Bundle → upload to the Play internal track.
+
+### Release via CI
+
+The `mobile-store-release` workflow (manual `workflow_dispatch`, macOS runner) builds the Android
+App Bundle and iOS IPA and can deploy to the stores once the accounts and repo secrets exist.
+Store deploys are off by default.
 
 Notes:
 
