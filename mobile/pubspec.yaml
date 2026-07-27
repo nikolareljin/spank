@@ -46,6 +46,17 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  # Generates the app launcher icons from assets/branding/spank_icon.png.
+  # Regenerate after changing the icon with: dart run flutter_launcher_icons
+  flutter_launcher_icons: ^0.14.1
+
+# App launcher icon configuration (see dev_dependencies above).
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/branding/spank_icon.png"
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -53,6 +64,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/branding/
     - assets/audio/pain/
     - assets/audio/halo/
     - assets/audio/sexy/

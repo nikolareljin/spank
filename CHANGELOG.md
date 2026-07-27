@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Added a new app launcher icon: a cartoon "slap" (a hand smacking a dazed phone) that
+  fits the tap/slap-detector theme. Source art is `mobile/assets/branding/spank_icon.svg`
+  (rasterized via the script-helpers `svg` module); Android + iOS launcher icons are
+  generated with `flutter_launcher_icons` (`dart run flutter_launcher_icons` to regenerate).
 - Updated the `scripts/script-helpers` submodule to `0.19.0`, which adds the `ios`
   helper module (device/simulator toolkit) alongside the existing helpers.
 - Added iOS support to the unified CLI: `./build ios`, `./run ios`, `./deploy ios` (alias `iphone`),
