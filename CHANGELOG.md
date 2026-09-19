@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- Pass `update_production_tag: true` explicitly to the shared auto-tag workflow.
+  ci-helpers is changing that input to default to `false`, so that calling the
+  workflow buys version tagging and moving the floating `production` ref is asked
+  for separately. This repository carries a `production` ref and ships
+  `scripts/create_production.sh`, so it opts in rather than relying on a default.
+  The line means the same thing under either default, so this changes nothing today.
+
 - Added a new app launcher icon: a cartoon "slap" (a hand smacking a dazed phone) that
   fits the tap/slap-detector theme. Source art is `mobile/assets/branding/spank_icon.svg`
   (rasterized via the script-helpers `svg` module); Android + iOS launcher icons are
