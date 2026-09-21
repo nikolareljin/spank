@@ -8,7 +8,7 @@ on:
 
 jobs:
   go:
-    uses: nikolareljin/ci-helpers/.github/workflows/go.yml@0.30.0-rc1
+    uses: nikolareljin/ci-helpers/.github/workflows/go.yml@production
     with:
       working_directory: "."
       submodules: recursive
@@ -18,7 +18,7 @@ jobs:
       build_command: "./scripts/build.sh"
 
   mobile:
-    uses: nikolareljin/ci-helpers/.github/workflows/ci.yml@0.30.0-rc1
+    uses: nikolareljin/ci-helpers/.github/workflows/ci.yml@production
     with:
       working_directory: "."
       submodules: recursive

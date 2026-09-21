@@ -43,7 +43,7 @@ jobs:
   go:
     needs: changes
     if: needs.changes.outputs.go == 'true'
-    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@0.30.0-rc1
+    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@production
     with:
       go_version: "1.22.2"
       working_directory: "."
@@ -55,7 +55,7 @@ jobs:
   mobile:
     needs: changes
     if: needs.changes.outputs.mobile == 'true'
-    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@0.30.0-rc1
+    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@production
     with:
       java_version: "17"
       flutter_version: "3.38.7"
