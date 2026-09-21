@@ -43,23 +43,25 @@ jobs:
   go:
     needs: changes
     if: needs.changes.outputs.go == 'true'
-    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@production
+    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@0.30.0-rc1
     with:
       go_version: "1.22.2"
       working_directory: "."
-      lint_command: "./scripts/update_submodules.sh && ./scripts/lint.sh"
-      test_command: "./scripts/update_submodules.sh && ./scripts/test.sh"
+      submodules: recursive
+      lint_command: "./scripts/lint.sh"
+      test_command: "./scripts/test.sh"
       build_command: ""
 
   mobile:
     needs: changes
     if: needs.changes.outputs.mobile == 'true'
-    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@production
+    uses: nikolareljin/ci-helpers/.github/workflows/pr-gate.yml@0.30.0-rc1
     with:
       java_version: "17"
       flutter_version: "3.38.7"
       flutter_channel: "stable"
       working_directory: "."
-      lint_command: "./scripts/update_submodules.sh && ./scripts/mobile_lint.sh"
-      test_command: "./scripts/update_submodules.sh && ./scripts/mobile_test.sh"
+      submodules: recursive
+      lint_command: "./scripts/mobile_lint.sh"
+      test_command: "./scripts/mobile_test.sh"
       build_command: ""
