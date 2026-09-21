@@ -8,21 +8,23 @@ on:
 
 jobs:
   go:
-    uses: nikolareljin/ci-helpers/.github/workflows/go.yml@production
+    uses: nikolareljin/ci-helpers/.github/workflows/go.yml@0.30.0-rc1
     with:
       working_directory: "."
+      submodules: recursive
       go_version: "1.22.2"
-      lint_command: "./scripts/update_submodules.sh && ./scripts/lint.sh"
-      test_command: "./scripts/update_submodules.sh && ./scripts/test.sh"
-      build_command: "./scripts/update_submodules.sh && ./scripts/build.sh"
+      lint_command: "./scripts/lint.sh"
+      test_command: "./scripts/test.sh"
+      build_command: "./scripts/build.sh"
 
   mobile:
-    uses: nikolareljin/ci-helpers/.github/workflows/ci.yml@production
+    uses: nikolareljin/ci-helpers/.github/workflows/ci.yml@0.30.0-rc1
     with:
       working_directory: "."
+      submodules: recursive
       java_version: "17"
       flutter_version: "3.38.7"
       flutter_channel: "stable"
-      lint_command: "./scripts/update_submodules.sh && ./scripts/mobile_lint.sh"
-      test_command: "./scripts/update_submodules.sh && ./scripts/mobile_test.sh"
-      build_command: "./scripts/update_submodules.sh && ./scripts/mobile_build_debug_apk.sh"
+      lint_command: "./scripts/mobile_lint.sh"
+      test_command: "./scripts/mobile_test.sh"
+      build_command: "./scripts/mobile_build_debug_apk.sh"
