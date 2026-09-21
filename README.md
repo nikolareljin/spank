@@ -57,7 +57,7 @@ If auto-detection picks the wrong device:
 ## Commands (unified CLI)
 
 The mobile app (Flutter in `./mobile`) uses the shared command surface common to all the game
-repos (time-loop-ar, lexiweave, bloombounce-orchard, spank) — same names + params everywhere. Use
+repos in this fleet — same names + params everywhere. Use
 the uniform `./dev <command>` entry point, or the literal shortcuts:
 
 ```
