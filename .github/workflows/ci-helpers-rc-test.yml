@@ -1,0 +1,27 @@
+name: ci-helpers rc test (flutter-release)
+
+# Throwaway pre-release test of ci-helpers 1.0.0-rc.1. Android build only:
+# no iOS, no store upload, no signing secrets forwarded.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/ci-helpers-rc-test.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: nikolareljin/ci-helpers/.github/workflows/flutter-release.yml@1.0.0-rc.1
+    with:
+      runner: ubuntu-latest
+      working_directory: "mobile"
+      flutter_version: "3.38.7"
+      flutter_channel: "stable"
+      java_version: "17"
+      build_android: true
+      build_ios: false
+      deploy_google_play: false
+      deploy_app_store: false
+      android_artifact_name: "rc-test-android-aab"
